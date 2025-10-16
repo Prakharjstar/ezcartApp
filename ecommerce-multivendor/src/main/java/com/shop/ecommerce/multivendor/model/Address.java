@@ -1,4 +1,4 @@
-package com.shop.ecommerce.multivendor.modal;
+package com.shop.ecommerce.multivendor.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -12,8 +12,22 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
-public class Coupon {
+public class Address {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+
+    private String name;
+
+    private String locality;
+
+    private String address;
+
+    private String city;
+
+    private String state;
+
+    private String pinCode;
+
+    private String mobile;
 }
