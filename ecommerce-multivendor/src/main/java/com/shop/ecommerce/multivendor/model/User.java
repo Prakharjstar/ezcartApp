@@ -4,11 +4,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.shop.ecommerce.multivendor.domain.USER_ROLE;
 import jakarta.persistence.*;
+import lombok.Data;
 
 import java.util.*;
 import java.util.HashSet;
 
 @Entity
+@Data
 public class User {
 
     @Id

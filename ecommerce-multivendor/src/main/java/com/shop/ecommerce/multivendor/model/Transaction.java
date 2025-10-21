@@ -2,7 +2,6 @@ package com.shop.ecommerce.multivendor.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -12,17 +11,23 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @EqualsAndHashCode
 public class Transaction {
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @ManyToMany
+    @ManyToOne
+    @JoinColumn(name = "customer_id")
     private User customer;
+
     @OneToOne
-     private Order order;
+    private Order order;
 
     @ManyToOne
-     private Seller seller;
+    private Seller seller;
 
-    private LocalDateTime date= LocalDateTime.now();
+    @Embedded
+    private PaymentDetails paymentDetails;
+
+    private LocalDateTime date = LocalDateTime.now();
 }

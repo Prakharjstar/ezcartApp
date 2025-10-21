@@ -13,6 +13,7 @@ import java.util.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
+@Table(name = "orders")
 public class Order {
 
     @Id
