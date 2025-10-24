@@ -1,4 +1,7 @@
 package com.shop.ecommerce.multivendor.Service;
 
-public class AuthService {
+import com.shop.ecommerce.multivendor.response.SignupRequest;
+
+public interface AuthService {
+    String createUser(SignupRequest req);
 }
