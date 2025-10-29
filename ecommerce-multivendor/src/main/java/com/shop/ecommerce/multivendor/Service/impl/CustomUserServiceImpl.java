@@ -1,7 +1,7 @@
 package com.shop.ecommerce.multivendor.Service.impl;
 
-import com.shop.ecommerce.multivendor.Repository.SellerRepository;
-import com.shop.ecommerce.multivendor.Repository.UserRepository;
+import com.shop.ecommerce.multivendor.repository.SellerRepository;
+import com.shop.ecommerce.multivendor.repository.UserRepository;
 import com.shop.ecommerce.multivendor.domain.USER_ROLE;
 import com.shop.ecommerce.multivendor.model.Seller;
 import com.shop.ecommerce.multivendor.model.User;
@@ -21,7 +21,7 @@ import java.util.List;
 @Service
 public class CustomUserServiceImpl implements UserDetailsService {
 
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
     private final SellerRepository sellerRepository;
     private static final String SELLER_PREFIX="seller_";
@@ -49,7 +49,7 @@ public class CustomUserServiceImpl implements UserDetailsService {
     private UserDetails buildUserDetails(String email, String password, USER_ROLE role) {
         if(role==null) role=USER_ROLE.ROLE_CUSTOMER;
         List<GrantedAuthority> authorityList = new ArrayList<>();
-        authorityList.add(new SimpleGrantedAuthority("ROLE_"+role));
+        authorityList.add(new SimpleGrantedAuthority(role.toString()));
         return new org.springframework.security.core.userdetails.User(email,password,authorityList);
     }
 }
