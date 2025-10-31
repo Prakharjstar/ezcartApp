@@ -1,7 +1,9 @@
 package com.shop.ecommerce.multivendor.Service.impl;
 
 import com.shop.ecommerce.multivendor.Config.JwtProvider;
+import com.shop.ecommerce.multivendor.model.Seller;
 import com.shop.ecommerce.multivendor.repository.CartRepository;
+import com.shop.ecommerce.multivendor.repository.SellerRepository;
 import com.shop.ecommerce.multivendor.repository.UserRepository;
 import com.shop.ecommerce.multivendor.repository.VerificationCodeRepository;
 import com.shop.ecommerce.multivendor.Service.AuthService;
@@ -40,17 +42,32 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final JwtProvider jwtProvider;
     private final CustomUserServiceImpl customUserService;
+    private final SellerRepository sellerRepository;
 
     @Override
-    public void sentLoginOtp(String email) throws Exception {
-        String SIGNING_PREFIX = "signin_";
+    public void sentLoginOtp(String email , USER_ROLE role) throws Exception {
+
+        String SIGNING_PREFIX = "signing_";
 
         if (email.startsWith(SIGNING_PREFIX)) {
             email = email.substring(SIGNING_PREFIX.length());
-            User user = userRepository.findByEmail(email);
-            if (user == null) {
-                throw new Exception("User not exist with the provided email");
+
+            if(role.equals(USER_ROLE.ROLE_SELLER)) {
+                Seller seller = sellerRepository.findByEmail(email);
+                if (seller == null) {
+                    throw new Exception("seller not found");
+                }
             }
+
+            else{
+                System.out.println("email"+email);
+                User user = userRepository.findByEmail(email);
+                if (user == null) {
+                    throw new Exception("User not exist with the provided email");
+                }
+
+            }
+
         }
 
         VerificationCode existing = verificationCodeRepository.findByEmail(email);

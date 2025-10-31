@@ -12,9 +12,9 @@ public interface SellerService {
     Seller getSellerById(Long id) throws Exception;
     Seller getSellerByEmail(String email) throws Exception;
     List<Seller> getAllSeller(AccountStatus status);
-    Seller updateSeller(Long id ,Seller seller);
-    void deleteSeller(Long id);
-    Seller verifyEmail(String email ,String opt);
-    Seller updateSellerAccountStatus(Long sellerId , AccountStatus status);
+    Seller updateSeller(Long id ,Seller seller) throws Exception;
+    void deleteSeller(Long id) throws Exception;
+    Seller verifyEmail(String email ,String opt) throws Exception;
+    Seller updateSellerAccountStatus(Long sellerId , AccountStatus status) throws Exception;
 
 }

@@ -4,6 +4,7 @@ package com.shop.ecommerce.multivendor.Controller;
 import com.shop.ecommerce.multivendor.Service.AuthService;
 import com.shop.ecommerce.multivendor.domain.USER_ROLE;
 import com.shop.ecommerce.multivendor.model.VerificationCode;
+import com.shop.ecommerce.multivendor.request.LoginOtpRequest;
 import com.shop.ecommerce.multivendor.request.LoginRequest;
 import com.shop.ecommerce.multivendor.response.ApiResponse;
 import com.shop.ecommerce.multivendor.response.AuthResponse;
@@ -37,10 +38,13 @@ public class AuthController {
     }
 
     @PostMapping("/sent/login-signup-otp")
-    public ResponseEntity<ApiResponse> sentOrpHandler(@RequestBody VerificationCode req) throws Exception {
-        authService.sentLoginOtp(req.getEmail());
+    public ResponseEntity<ApiResponse> sentOrpHandler(@RequestBody LoginOtpRequest req) throws Exception {
+        authService.sentLoginOtp(req.getEmail(), req.getRole());
+
         ApiResponse res = new ApiResponse();
+
         res.setMessage("otp sent successfully");
+
         return ResponseEntity.ok(res);
     }
 
