@@ -35,7 +35,7 @@ public class SellerController {
         String otp = req.getOtp();
         String email = req.getEmail();
 
-        req.setEmail("seller"+email);
+        req.setEmail("seller_"+email);
         AuthResponse authResponse = authService.signing(req);
 
         return ResponseEntity.ok(authResponse);
@@ -45,7 +45,7 @@ public class SellerController {
     public ResponseEntity<Seller> verifySellerEmail(@PathVariable String otp) throws Exception {
         VerificationCode verificationCode = verificationCodeRepository.findByOtp(otp);
 
-        if(verificationCode==null || !verificationCode.getOpt().equals(otp)){
+        if(verificationCode==null || !verificationCode.getOtp().equals(otp)){
             throw new Exception("Wrong otp.....");
 
         }
@@ -61,7 +61,7 @@ public class SellerController {
         String otp = OtpUtil.generateOtp();
 
         VerificationCode verificationCode = new VerificationCode();
-        verificationCode.setOpt(otp);
+        verificationCode.setOtp(otp);
         verificationCode.setEmail(seller.getEmail());
         verificationCodeRepository.save(verificationCode);
 
@@ -69,7 +69,7 @@ public class SellerController {
         String text = "Welcome to Ezcart , verify your account using this link";
          String frontend_url = "http://localhost:3000/verify-seller/";
 
-         emailService.sendVerificationOtpEmail(seller.getEmail() , verificationCode.getOpt() , subject, text + frontend_url);
+         emailService.sendVerificationOtpEmail(seller.getEmail() , verificationCode.getOtp() , subject, text + frontend_url);
          return new ResponseEntity<>(savedSeller, HttpStatus.CREATED);
 
     }

@@ -14,7 +14,8 @@ public class VerificationCode {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    private String opt;
+    private String otp;
+    @Column(unique = true)
      private String email;
 
      @OneToOne
