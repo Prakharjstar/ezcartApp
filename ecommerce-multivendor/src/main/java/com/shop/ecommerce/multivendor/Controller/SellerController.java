@@ -5,6 +5,7 @@ import com.shop.ecommerce.multivendor.Service.EmailService;
 import com.shop.ecommerce.multivendor.Service.SellerService;
 import com.shop.ecommerce.multivendor.Util.OtpUtil;
 import com.shop.ecommerce.multivendor.domain.AccountStatus;
+import com.shop.ecommerce.multivendor.model.Exceptions.SellerException;
 import com.shop.ecommerce.multivendor.model.Seller;
 import com.shop.ecommerce.multivendor.model.SellerReport;
 import com.shop.ecommerce.multivendor.model.VerificationCode;
@@ -75,7 +76,7 @@ public class SellerController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Seller> getSellerById(@PathVariable Long id) throws Exception {
+    public ResponseEntity<Seller> getSellerById(@PathVariable Long id) throws SellerException {
         Seller seller = sellerService.getSellerById(id);
         return new ResponseEntity<>(seller , HttpStatus.OK);
 

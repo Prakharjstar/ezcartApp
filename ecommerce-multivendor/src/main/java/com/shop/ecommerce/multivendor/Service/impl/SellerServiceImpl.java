@@ -5,6 +5,7 @@ import com.shop.ecommerce.multivendor.Service.SellerService;
 import com.shop.ecommerce.multivendor.domain.AccountStatus;
 import com.shop.ecommerce.multivendor.domain.USER_ROLE;
 import com.shop.ecommerce.multivendor.model.Address;
+import com.shop.ecommerce.multivendor.model.Exceptions.SellerException;
 import com.shop.ecommerce.multivendor.model.Seller;
 import com.shop.ecommerce.multivendor.repository.AddressRepository;
 import com.shop.ecommerce.multivendor.repository.SellerRepository;
@@ -51,8 +52,8 @@ public class SellerServiceImpl implements SellerService {
     }
 
     @Override
-    public Seller getSellerById(Long id) throws Exception {
-        return sellerRepository.findById(id).orElseThrow(()-> new Exception("seller not found with id " + id));
+    public Seller getSellerById(Long id) throws SellerException {
+        return sellerRepository.findById(id).orElseThrow(()-> new SellerException("seller not found with id " + id));
     }
 
     @Override
