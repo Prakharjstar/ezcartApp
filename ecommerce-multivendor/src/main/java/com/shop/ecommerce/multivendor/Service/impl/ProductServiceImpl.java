@@ -12,6 +12,9 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -90,7 +93,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Product updateProduct(Long productId, Product product) {
+    public Product updateProduct(Long productId, Product product) throws ProductException {
         findProductById(productId);
         product.setId(productId);
         return productRepository.save(product);
@@ -103,14 +106,16 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<Product> searchProduct() {
-        return List.of();
+    public List<Product> searchProduct( String query) {
+
+        return productRepository.searchProduct(query);
     }
 
 
 
+
     @Override
-    public Page<Product> getAllProducts(String category, String brand, String colors, String sizes, String minPrice, String maxPrice, String minDiscount, String sort, String stock, String pageNumber) {
+    public Page<Product> getAllProducts(String category, String brand, String colors, String sizes, Integer minPrice, Integer maxPrice, Integer minDiscount, String sort, String stock, Integer pageNumber) {
         Specification<Product> spec =(root,query,criteriaBuilder)->{
             List<Predicate> predicates = new ArrayList<>();
 
@@ -120,7 +125,7 @@ public class ProductServiceImpl implements ProductService {
             }
             if(colors !=null && !colors.isEmpty()){
                 System.out.println("color "+colors);
-                predicates.add(( criteriaBuilder.equal(root.get("color"),colors));
+                predicates.add( criteriaBuilder.equal(root.get("color"),colors));
             }
 
             if(sizes!=null && !sizes.isEmpty()){
@@ -145,19 +150,32 @@ public class ProductServiceImpl implements ProductService {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
 
 
+        };
+        Pageable pageable;
+        if(sort!=null && sort.isEmpty()){
+            switch(sort){
+                case "price_low":
+                    pageable = PageRequest.of(pageNumber!=null? pageNumber:0 ,10,Sort.by("sellingPrice").ascending());
+                    break;
 
-
-
+                case "price_high":
+                    pageable = PageRequest.of(pageNumber!=null? pageNumber:0 ,10,Sort.by("sellingPrice").descending());
+                    break;
+                default:
+                    pageable = PageRequest.of(pageNumber!=null? pageNumber:0 ,10 , Sort.unsorted());
+                    break;
+            };
         }
+        else{
+            pageable=PageRequest.of(pageNumber!=null? pageNumber:0 , 10 , Sort.unsorted());
+        }
+        return productRepository.findAll(spec , pageable);
 
-
-
-
-        return null;
     }
+
 
     @Override
     public List<Product> getProductBySellerId(Long sellerId) {
-        return List.of();
+        return productRepository.findBySellerId(sellerId);
     }
 }
