@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/product")
+@RequestMapping("/products")
 public class ProductController {
     private final ProductService productService;
 
@@ -30,6 +30,7 @@ public class ProductController {
         return new ResponseEntity<>(products , HttpStatus.OK);
     }
 
+    @GetMapping()
     public ResponseEntity<Page<Product>> getAllProducts(@RequestParam(required = false) String category,
                                                         @RequestParam(required = false) String brand,
                                                         @RequestParam(required = false) String color,
