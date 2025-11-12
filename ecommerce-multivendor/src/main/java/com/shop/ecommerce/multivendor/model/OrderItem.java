@@ -13,7 +13,7 @@ import lombok.*;
 public class OrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
+    private Long UserId;
 
     @JsonIgnore
     @ManyToOne
@@ -29,4 +29,5 @@ public class OrderItem {
     private Integer mrpPrice;
 
     private Integer sellingPrice;
+
 }

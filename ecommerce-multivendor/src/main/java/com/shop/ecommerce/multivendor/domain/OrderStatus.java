@@ -1,4 +1,4 @@
-package com.shop.ecommerce.multivendor.model;
+package com.shop.ecommerce.multivendor.domain;
 
 public enum OrderStatus {
     PENDING,

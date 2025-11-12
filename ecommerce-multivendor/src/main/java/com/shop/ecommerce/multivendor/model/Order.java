@@ -1,5 +1,6 @@
 package com.shop.ecommerce.multivendor.model;
 
+import com.shop.ecommerce.multivendor.domain.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
