@@ -1,10 +1,7 @@
 package com.shop.ecommerce.multivendor.Service;
 
 import com.shop.ecommerce.multivendor.domain.OrderStatus;
-import com.shop.ecommerce.multivendor.model.Address;
-import com.shop.ecommerce.multivendor.model.Cart;
-import com.shop.ecommerce.multivendor.model.Order;
-import com.shop.ecommerce.multivendor.model.User;
+import com.shop.ecommerce.multivendor.model.*;
 
 import java.util.List;
 import java.util.Set;
@@ -16,4 +13,5 @@ public interface OrderService {
     List<Order> sellerOrder(Long sellerId);
     Order updateOrderStatus(Long orderId , OrderStatus orderStatus) throws Exception;
     Order cancelOrder(Long orderId , User user) throws Exception;
+    OrderItem findById(Long id) throws Exception;
 }
