@@ -1,8 +1,6 @@
 package com.shop.ecommerce.multivendor.Controller;
 
-import com.shop.ecommerce.multivendor.Service.CartService;
-import com.shop.ecommerce.multivendor.Service.OrderService;
-import com.shop.ecommerce.multivendor.Service.UserService;
+import com.shop.ecommerce.multivendor.Service.*;
 import com.shop.ecommerce.multivendor.model.*;
 
 import com.shop.ecommerce.multivendor.response.PaymentLinkResponse;
@@ -13,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.SQLOutput;
 import java.util.List;
 import java.util.Set;
 
@@ -23,6 +22,8 @@ public class OrderController {
     private final OrderService orderService;
     private final UserService userService;
     private final CartService cartService;
+    private final SellerService sellerService;
+    private final SellerReportService sellerReportService;
 
 
     @PostMapping()
@@ -56,5 +57,29 @@ public class OrderController {
         return new ResponseEntity<>(orders,HttpStatus.ACCEPTED);
     }
 
+    @GetMapping("/item/{orderItemId}")
+    public ResponseEntity<OrderItem> getOrderItemById(@PathVariable Long orderItemId, @RequestHeader("Authorization")String jwt) throws Exception {
+        System.out.println("-------controller ");
+        User user = userService.findUserByJwtToken(jwt);
+        OrderItem orderItem = orderService.getOrderItemById(orderItemId);
+        return new ResponseEntity<>(orderItem,HttpStatus.ACCEPTED);
+
+    }
+
+    @PutMapping("/{orderId}/cancel")
+    public ResponseEntity<Order> cancelOrder(@PathVariable Long orderId,@RequestHeader("Authorization") String jwt) throws Exception {
+
+        User user = userService.findUserByJwtToken(jwt);
+        Order order = orderService.cancelOrder(orderId,user);
+
+        Seller seller = sellerService.getSellerById(order.getSellerId());
+       SellerReport report = sellerReportService.getSellerReport(seller);
+
+       report.setCanceledOrders(report.getCanceledOrders()+1);
+        report.setTotalRefunds(report.getTotalRefunds()+order.getTotalSellingPrice());
+       sellerReportService.updateSellerReport(report);
+
+        return ResponseEntity.ok(order);
+    }
 
 }

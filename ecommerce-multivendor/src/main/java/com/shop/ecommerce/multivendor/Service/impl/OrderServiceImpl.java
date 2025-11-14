@@ -23,19 +23,19 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Set<Order> createOrder(User user, Address shippingAddress, Cart cart) {
-        if(!user.getAddresses().contains(shippingAddress)){
+        if (!user.getAddresses().contains(shippingAddress)) {
             user.getAddresses().add(shippingAddress);
         }
         Address address = addressRepository.save(shippingAddress);
-        Map<Long, List<CartItem>> itemsBySeller = cart.getCartItems().stream().collect(Collectors.groupingBy(item->item.getProduct().getSeller().getId()));
+        Map<Long, List<CartItem>> itemsBySeller = cart.getCartItems().stream().collect(Collectors.groupingBy(item -> item.getProduct().getSeller().getId()));
         Set<Order> orders = new HashSet<>();
 
-        for(Map.Entry<Long ,List<CartItem>> entry:itemsBySeller.entrySet()){
+        for (Map.Entry<Long, List<CartItem>> entry : itemsBySeller.entrySet()) {
             Long sellerId = entry.getKey();
             List<CartItem> items = entry.getValue();
 
             int totalOrderPrice = items.stream().mapToInt(CartItem::getSellingPrice).sum();
-            int totalItem = items.stream().mapToInt(CartItem:: getQuantity).sum();
+            int totalItem = items.stream().mapToInt(CartItem::getQuantity).sum();
             Order createdOrder = new Order();
             createdOrder.setUser(user);
             createdOrder.setSellerId(sellerId);
@@ -50,7 +50,7 @@ public class OrderServiceImpl implements OrderService {
             orders.add(savedOrder);
 
             List<OrderItem> orderItems = new ArrayList<>();
-            for(CartItem item: items){
+            for (CartItem item : items) {
                 OrderItem orderItem = new OrderItem();
                 orderItem.setOrder(savedOrder);
                 orderItem.setMrpPrice(item.getMrpPrice());
@@ -71,7 +71,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Order findOrderById(long id) throws Exception {
-        return orderRepository.findById(id).orElseThrow(()-> new Exception("Order not found..."));
+        return orderRepository.findById(id).orElseThrow(() -> new Exception("Order not found..."));
     }
 
 
@@ -95,8 +95,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Order cancelOrder(Long orderId, User user) throws Exception {
         Order order = findOrderById(orderId);
-        if(!user.getId().equals(order.getUser().getId())){
-            throw  new Exception("You don't have access to this Order");
+        if (!user.getId().equals(order.getUser().getId())) {
+            throw new Exception("You don't have access to this Order");
         }
         order.setOrderStatus(OrderStatus.CANCELLED);
         return orderRepository.save(order);
@@ -104,8 +104,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderItem findById(Long id) throws Exception {
-        return orderItemRepository.findById(id).orElseThrow(()-> new Exception("order item not exists"));
+    public OrderItem getOrderItemById(Long id) throws Exception {
+        return orderItemRepository.findById(id).orElseThrow(()-> new Exception("order item not exist...."));
 
     }
+
 }
