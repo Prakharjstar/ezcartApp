@@ -80,8 +80,10 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findByUserId(userId);
     }
 
+
+
     @Override
-    public List<Order> sellerOrder(Long sellerId) {
+    public List<Order> sellersOrder(Long sellerId) {
         return orderRepository.findBySellerId(sellerId);
     }
 
