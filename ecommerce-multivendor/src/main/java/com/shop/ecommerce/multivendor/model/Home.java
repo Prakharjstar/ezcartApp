@@ -1,11 +1,12 @@
 package com.shop.ecommerce.multivendor.model;
 
-import jakarta.persistence.Entity;
 import lombok.*;
 import java.util.*;
 
 @Data
-public class home {
+@AllArgsConstructor
+@NoArgsConstructor
+public class Home {
 
     private List<HomeCategory> gird;
 
