@@ -52,6 +52,7 @@ public class SellerProductController {
         }
     }
 
+    @PutMapping("/{productId}")
     public ResponseEntity<Product> updateProduct(@PathVariable Long productId , @RequestBody Product product) throws ProductException{
 
             Product updatedProduct = productService.updateProduct(productId,product);
