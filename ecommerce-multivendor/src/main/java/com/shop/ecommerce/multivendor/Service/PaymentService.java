@@ -6,6 +6,7 @@ import com.shop.ecommerce.multivendor.model.Order;
 import com.shop.ecommerce.multivendor.model.PaymentOrder;
 import com.shop.ecommerce.multivendor.model.User;
 import com.stripe.exception.StripeException;
+import org.json.JSONObject;
 
 import java.util.Set;
 
@@ -18,5 +19,9 @@ public interface PaymentService {
 
     PaymentLink createRazorpayPaymentLink(User user , Long amount , Long orderId) throws RazorpayException;
 
+    JSONObject createRazorpayOrder(PaymentOrder paymentOrder)
+            throws RazorpayException;
+
     String createStripePaymentLink(User user  ,Long amount , Long orderId) throws StripeException;
+
 }

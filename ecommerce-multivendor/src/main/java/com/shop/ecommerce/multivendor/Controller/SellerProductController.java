@@ -3,11 +3,9 @@ package com.shop.ecommerce.multivendor.Controller;
 import com.shop.ecommerce.multivendor.Service.ProductService;
 import com.shop.ecommerce.multivendor.Service.SellerService;
 import com.shop.ecommerce.multivendor.model.Exceptions.ProductException;
-import com.shop.ecommerce.multivendor.model.Exceptions.SellerException;
 import com.shop.ecommerce.multivendor.model.Product;
 import com.shop.ecommerce.multivendor.model.Seller;
 import com.shop.ecommerce.multivendor.request.CreateProductRequest;
-import jdk.jshell.spi.ExecutionControl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/sellers/products")
+@RequestMapping("/seller/products")
 public class SellerProductController {
 
 

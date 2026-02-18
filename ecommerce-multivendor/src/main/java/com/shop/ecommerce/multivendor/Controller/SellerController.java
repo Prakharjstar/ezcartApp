@@ -12,7 +12,6 @@ import com.shop.ecommerce.multivendor.model.SellerReport;
 import com.shop.ecommerce.multivendor.model.VerificationCode;
 import com.shop.ecommerce.multivendor.repository.VerificationCodeRepository;
 import com.shop.ecommerce.multivendor.request.LoginRequest;
-import com.shop.ecommerce.multivendor.response.ApiResponse;
 import com.shop.ecommerce.multivendor.response.AuthResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

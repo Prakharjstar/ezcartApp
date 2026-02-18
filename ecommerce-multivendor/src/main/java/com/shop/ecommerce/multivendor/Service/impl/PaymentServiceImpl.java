@@ -13,7 +13,9 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
+
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -24,9 +26,16 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentOrderRepository paymentOrderRepository;
     private final OrderRepository orderRepository;
-    private String apiKey="apikey";
-    private String apiSecret="apiSecret";
-    private String stripeSecretKey="stripesecretkey";
+
+
+
+    private String stripeSecretKey;
+
+    @Value("${razorpay.api.key}")
+    private String razorpayKeyId;
+
+    @Value("${razorpay.api.secret}")
+    private String razorpayKeySecret;
 
     @Override
     public PaymentOrder CreateOrder(User user, Set<Order> orders) {
@@ -56,7 +65,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public Boolean ProceedPaymentOrder(PaymentOrder paymentOrder, String paymentId, String paymentLinkId) throws RazorpayException {
         if(paymentOrder.getStatus().equals(PaymentOrderStatus.PENDING)){
-            RazorpayClient razorpay = new RazorpayClient(apiKey ,apiSecret);
+            RazorpayClient razorpay = new RazorpayClient(razorpayKeyId ,razorpayKeySecret);
 
             Payment payment = razorpay.payments.fetch(paymentId);
 
@@ -83,7 +92,7 @@ public class PaymentServiceImpl implements PaymentService {
         amount=amount*100;
 
         try {
-            RazorpayClient razorpay = new RazorpayClient(apiKey ,apiSecret);
+            RazorpayClient razorpay = new RazorpayClient(razorpayKeyId ,razorpayKeySecret);
             JSONObject paymentLinkRequest= new JSONObject();
             paymentLinkRequest.put("amount",amount);
             paymentLinkRequest.put("currency","INR");
@@ -121,5 +130,34 @@ public class PaymentServiceImpl implements PaymentService {
         SessionCreateParams params =SessionCreateParams.builder().addPaymentMethodType(SessionCreateParams.PaymentMethodType.CARD).setMode(SessionCreateParams.Mode.PAYMENT).setSuccessUrl("http://localhost:3000/payment-success"+orderId).setCancelUrl("http://localhost:3000/payment-cancel").addLineItem(SessionCreateParams.LineItem.builder().setQuantity(1L).setPriceData(SessionCreateParams.LineItem.PriceData.builder().setCurrency("usd").setUnitAmount(amount*100).setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder().setName("EzCart payment").build()).build()).build()).build();
         Session session = Session.create(params);
     return session.getUrl();
+    }
+
+
+    @Override
+    public JSONObject createRazorpayOrder(PaymentOrder paymentOrder) throws RazorpayException {
+
+        RazorpayClient razorpay = new RazorpayClient(
+                razorpayKeyId,
+                razorpayKeySecret
+        );
+
+        JSONObject options = new JSONObject();
+        options.put("amount", paymentOrder.getAmount() * 100); // paise
+        options.put("currency", "INR");
+        options.put("receipt", "payment_order_" + paymentOrder.getId());
+
+        com.razorpay.Order order = razorpay.orders.create(options);
+
+
+        paymentOrder.setRazorpayOrderId(order.get("id"));
+        paymentOrderRepository.save(paymentOrder);
+
+        JSONObject response = new JSONObject();
+        response.put("orderId", (String) order.get("id"));
+        response.put("amount", ((Number) order.get("amount")).longValue());
+        response.put("currency", (String) order.get("currency"));
+        response.put("key", razorpayKeyId);
+
+        return response;
     }
 }

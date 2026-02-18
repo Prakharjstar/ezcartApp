@@ -13,7 +13,6 @@ import java.util.*;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode
 @Table(name = "orders")
 public class Order {
 
@@ -32,6 +31,7 @@ public class Order {
     @ManyToOne
     private Address shippingAddress;
 
+    @Embedded
     private PaymentDetails paymentDetails = new PaymentDetails();
 
     private double totalMrpPrice;

@@ -6,6 +6,8 @@ import com.shop.ecommerce.multivendor.model.*;
 import com.shop.ecommerce.multivendor.repository.AddressRepository;
 import com.shop.ecommerce.multivendor.repository.OrderItemRepository;
 import com.shop.ecommerce.multivendor.repository.OrderRepository;
+import com.shop.ecommerce.multivendor.repository.ProductRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,57 +20,72 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final AddressRepository addressRepository;
+    private final ProductRepository productRepository;
 
     private final OrderItemRepository orderItemRepository;
 
-    @Override
+    @Transactional
     public Set<Order> createOrder(User user, Address shippingAddress, Cart cart) {
         if (!user.getAddresses().contains(shippingAddress)) {
             user.getAddresses().add(shippingAddress);
         }
         Address address = addressRepository.save(shippingAddress);
-        Map<Long, List<CartItem>> itemsBySeller = cart.getCartItems().stream().collect(Collectors.groupingBy(item -> item.getProduct().getSeller().getId()));
+
+        Map<Long, List<CartItem>> itemsBySeller = cart.getCartItems()
+                .stream()
+                .collect(Collectors.groupingBy(item -> item.getProduct().getSeller().getId()));
+
         Set<Order> orders = new HashSet<>();
 
         for (Map.Entry<Long, List<CartItem>> entry : itemsBySeller.entrySet()) {
             Long sellerId = entry.getKey();
             List<CartItem> items = entry.getValue();
 
-            int totalOrderPrice = items.stream().mapToInt(CartItem::getSellingPrice).sum();
-            int totalItem = items.stream().mapToInt(CartItem::getQuantity).sum();
-            Order createdOrder = new Order();
-            createdOrder.setUser(user);
-            createdOrder.setSellerId(sellerId);
-            createdOrder.setTotalMrpPrice(totalOrderPrice);
-            createdOrder.setTotalSellingPrice(totalOrderPrice);
-            createdOrder.setTotalItem(totalItem);
-            createdOrder.setShippingAddress(address);
-            createdOrder.setOrderStatus(OrderStatus.PENDING);
-            createdOrder.getPaymentDetails().setStatus(PaymentStatus.PENDING);
+            int totalOrderPrice = items.stream()
+                    .mapToInt(item -> item.getSellingPrice() * item.getQuantity())
+                    .sum();
 
-            Order savedOrder = orderRepository.save(createdOrder);
-            orders.add(savedOrder);
+            int totalItem = items.stream()
+                    .mapToInt(CartItem::getQuantity)
+                    .sum();
 
-            List<OrderItem> orderItems = new ArrayList<>();
+            Order order = new Order();
+            order.setUser(user);
+            order.setSellerId(sellerId);
+            order.setShippingAddress(address);
+            order.setOrderStatus(OrderStatus.PENDING);
+            order.setTotalMrpPrice(totalOrderPrice);
+            order.setTotalSellingPrice(totalOrderPrice);
+            order.setTotalItem(totalItem);
+
+            // initialize payment details
+            PaymentDetails paymentDetails = new PaymentDetails();
+            paymentDetails.setStatus(PaymentStatus.PENDING);
+            order.setPaymentDetails(paymentDetails);
+
+            // add order items
             for (CartItem item : items) {
+                Product product = productRepository.findById(item.getProduct().getId())
+                        .orElseThrow(() -> new RuntimeException("Product not found"));
+
                 OrderItem orderItem = new OrderItem();
-                orderItem.setOrder(savedOrder);
-                orderItem.setMrpPrice(item.getMrpPrice());
-                orderItem.setProduct(item.getProduct());
+                orderItem.setOrder(order);
+                orderItem.setProduct(product);
                 orderItem.setQuantity(item.getQuantity());
-                orderItem.setSize(item.getSize());
-                orderItem.setUserId(item.getUserId());
+                orderItem.setMrpPrice(item.getMrpPrice());
                 orderItem.setSellingPrice(item.getSellingPrice());
+                orderItem.setSize(item.getSize());
+                orderItem.setUserId(user.getId()); // <--- important
+                order.getOrderItems().add(orderItem);
 
-                savedOrder.getOrderItems().add(orderItem);
 
-                OrderItem savedOrderItem = orderItemRepository.save(orderItem);
-                orderItems.add(savedOrderItem);
             }
+
+            orders.add(orderRepository.save(order));
         }
+
         return orders;
     }
-
     @Override
     public Order findOrderById(long id) throws Exception {
         return orderRepository.findById(id).orElseThrow(() -> new Exception("Order not found..."));

@@ -2,6 +2,7 @@ package com.shop.ecommerce.multivendor.Controller;
 
 import com.razorpay.PaymentLink;
 import com.shop.ecommerce.multivendor.Service.*;
+import com.shop.ecommerce.multivendor.dto.CreateOrderRequest;
 import com.shop.ecommerce.multivendor.model.*;
 
 import com.shop.ecommerce.multivendor.repository.PaymentOrderRepository;
@@ -30,36 +31,37 @@ public class OrderController {
     private final PaymentOrderRepository paymentOrderRepository;
 
 
-    @PostMapping()
-    public ResponseEntity<PaymentLinkResponse> createOrderHandler(@RequestBody Address shippingAddress,
-                                                                  @RequestParam PaymentMethod paymentMethod,
-                                                                  @RequestHeader("Authorization") String jwt) throws Exception {
+    @PostMapping
+    public ResponseEntity<PaymentLinkResponse> createOrderHandler(
+            @RequestBody CreateOrderRequest request,
+            @RequestHeader("Authorization") String jwt) throws Exception {
+
+        // 1. Get the user from JWT
         User user = userService.findUserByJwtToken(jwt);
+
+        // 2. Get user's cart
         Cart cart = cartService.findUserCart(user);
-        Set<Order> orders = orderService.createOrder(user, shippingAddress, cart);
 
-        PaymentOrder paymentOrder = paymentService. CreateOrder(user,orders);
+        // 3. Create orders
+        Set<Order> orders = orderService.createOrder(user, request.getShippingAddress(), cart);
 
-        PaymentLinkResponse res =new PaymentLinkResponse();
-        if(paymentMethod.equals(PaymentMethod.RAZORPAY)){
-            PaymentLink payment= paymentService.createRazorpayPaymentLink(user, paymentOrder.getAmount(), paymentOrder.getId());
-            String paymentUrl=payment.get("short_url");
-            String paymentUrlId=payment.get("id");
+        // 4. Create payment order
+        PaymentOrder paymentOrder = paymentService.CreateOrder(user, orders);
+        PaymentLinkResponse res = new PaymentLinkResponse();
 
-            res.setPayment_link_url(paymentUrl);
-
-            paymentOrder.setPaymentLinkId(paymentUrlId);
+        // 5. Payment logic
+        if ("RAZORPAY".equalsIgnoreCase(request.getPaymentMethod())) {
+            PaymentLink payment = paymentService.createRazorpayPaymentLink(user, paymentOrder.getAmount(), paymentOrder.getId());
+            res.setPayment_link_url(payment.get("short_url"));
+            paymentOrder.setPaymentLinkId(payment.get("id"));
             paymentOrderRepository.save(paymentOrder);
-        }else{
-
-            String paymentUrl=paymentService.createStripePaymentLink(user,paymentOrder.getAmount(),paymentOrder.getId());
+        } else {
+            String paymentUrl = paymentService.createStripePaymentLink(user, paymentOrder.getAmount(), paymentOrder.getId());
             res.setPayment_link_url(paymentUrl);
-
         }
 
-        return new ResponseEntity<>(res, HttpStatus.OK);
+        return ResponseEntity.ok(res);
     }
-
     @GetMapping("/user")
     public ResponseEntity<List<Order>> userOrderHistoryHandler(@RequestHeader("Authorization") String jwt) throws Exception {
         User user = userService.findUserByJwtToken(jwt);

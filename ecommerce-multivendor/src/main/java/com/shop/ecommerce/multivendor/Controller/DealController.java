@@ -3,7 +3,6 @@ package com.shop.ecommerce.multivendor.Controller;
 import com.shop.ecommerce.multivendor.Service.DealService;
 import com.shop.ecommerce.multivendor.model.Deal;
 import com.shop.ecommerce.multivendor.response.ApiResponse;
-import com.stripe.model.tax.Registration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

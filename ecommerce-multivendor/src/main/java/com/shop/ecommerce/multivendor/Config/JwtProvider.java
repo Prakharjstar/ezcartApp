@@ -2,6 +2,7 @@ package com.shop.ecommerce.multivendor.Config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -25,7 +26,7 @@ public class JwtProvider {
                 .setExpiration(new Date(new Date().getTime()+86400000))
                 .claim("email",auth.getName())
                 .claim("authorities",roles)
-                .signWith(key)
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
 
     }
