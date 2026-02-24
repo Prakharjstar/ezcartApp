@@ -1,9 +1,6 @@
 package com.shop.ecommerce.multivendor.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
@@ -12,7 +9,6 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
-
 public class HomeCategory {
 
     @Id
@@ -20,7 +16,9 @@ public class HomeCategory {
     private Long id;
 
     private String name;
+    @Column(length = 255)
     private String image;
     private String categoryId;
+
     private HomeCategorySection section;
 }

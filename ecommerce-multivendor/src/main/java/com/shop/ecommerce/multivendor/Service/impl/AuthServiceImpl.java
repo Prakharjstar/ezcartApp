@@ -118,13 +118,13 @@ public class AuthServiceImpl implements AuthService {
         return jwtProvider.generateToken(authentication); // return JWT to frontend
     }
 
-    // 🔹 Login (Customer, Seller, Admin)
+    //  Login (Customer, Seller, Admin)
     @Override
     public AuthResponse signing(LoginRequest req) throws Exception {
         String username = req.getEmail();
         USER_ROLE role;
 
-        // ✅ Admin login
+        //  Admin login
         if (username.equals(ADMIN_EMAIL)) {
             role = USER_ROLE.ROLE_ADMIN;
             Authentication authentication = authenticateAdmin(req.getOtp());

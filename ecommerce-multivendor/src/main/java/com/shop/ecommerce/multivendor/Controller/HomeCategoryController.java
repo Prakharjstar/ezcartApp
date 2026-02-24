@@ -18,6 +18,7 @@ public class HomeCategoryController {
     private final HomeCategoryService homeCategoryService;
     private final HomeService homeService;
 
+
     @PostMapping("/home/categories")
     public ResponseEntity<Home> createHomeCategories(@RequestBody List<HomeCategory> homeCategories) {
         List<HomeCategory> categories = homeCategoryService.createCategories(homeCategories);
@@ -26,7 +27,7 @@ public class HomeCategoryController {
     }
 
 
-    @GetMapping("/admin//home-category")
+    @GetMapping("/home-category")
     public ResponseEntity<List<HomeCategory>> getHomeCategory()
             throws Exception {
         List<HomeCategory> categories = homeCategoryService.getAllHomeCategories();
@@ -34,7 +35,7 @@ public class HomeCategoryController {
     }
 
 
-    @PatchMapping("/admin/home-category/{id}")
+    @PatchMapping("/home-category/{id}")
     public ResponseEntity<HomeCategory> updateHomeCategory(@PathVariable Long id, @RequestBody HomeCategory homeCategory) throws Exception {
 
         HomeCategory updatedCategory = homeCategoryService.updateHomeCategory(homeCategory, id);

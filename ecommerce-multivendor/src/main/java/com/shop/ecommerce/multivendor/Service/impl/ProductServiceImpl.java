@@ -49,13 +49,13 @@ public class ProductServiceImpl implements ProductService {
             category2=categoryRepository.save(category);
         }
 
-        Category category3 = categoryRepository.findByCategoryId(req.getCategory2());
-        if(category3==null){
+        Category category3 = categoryRepository.findByCategoryId(req.getCategory3());
+        if(category3 == null){
             Category category = new Category();
             category.setCategoryId(req.getCategory3());
             category.setLevel(3);
             category.setParentCategory(category2);
-            category3=categoryRepository.save(category);
+            category3 = categoryRepository.save(category);
         }
 
         int discountPercentage = calculateDiscountPercentage( req.getMrpPrice() , req.getSellingPrice() );
@@ -114,50 +114,56 @@ public class ProductServiceImpl implements ProductService {
 
 
 
+   
     @Override
-    public Page<Product> getAllProducts(String category, String brand, String colors, String sizes, Integer minPrice, Integer maxPrice, Integer minDiscount, String sort, String stock, Integer pageNumber) {
+    public Page<Product> getAllProducts(String categorySlug, String brand, String colors, String sizes,
+                                        Integer minPrice, Integer maxPrice, Integer minDiscount,
+                                        String sort, String stock, Integer pageNumber) {
+
         Specification<Product> spec =(root,query,criteriaBuilder)->{
             List<Predicate> predicates = new ArrayList<>();
 
-            if(category!=null){
-                  Join<Product ,  Category> categoryJoin = root.join("category");
-                  predicates.add( criteriaBuilder.equal(categoryJoin.get("categoryId"),category));
+            if (categorySlug != null && !categorySlug.isEmpty()) {
+                predicates.add(
+                        criteriaBuilder.equal(
+                                root.get("category").get("categoryId"),
+                                categorySlug
+                        )
+                );
             }
             if(colors !=null && !colors.isEmpty()){
-                System.out.println("color "+colors);
-                predicates.add( criteriaBuilder.equal(root.get("color"),colors));
+                predicates.add(criteriaBuilder.equal(root.get("color"),colors));
             }
 
             if(sizes!=null && !sizes.isEmpty()){
-                predicates.add( criteriaBuilder.equal(root.get("size"),sizes) );
+                predicates.add(criteriaBuilder.equal(root.get("sizes"),sizes));
             }
 
             if(minPrice!=null){
-                predicates.add( criteriaBuilder.greaterThanOrEqualTo(root.get("sellingPrice"),minPrice));
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("sellingPrice"),minPrice));
             }
 
             if(maxPrice!=null){
-                predicates.add( criteriaBuilder.lessThanOrEqualTo(root.get("sellingPrice"),maxPrice));
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("sellingPrice"),maxPrice));
             }
 
             if(minDiscount!=null){
-                predicates.add( criteriaBuilder.greaterThanOrEqualTo(root.get("discountPrcent"),minDiscount));
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("discountPercent"),minDiscount));
             }
 
             if(stock!=null){
-                predicates.add( criteriaBuilder.equal(root.get("stock"),stock));
+                predicates.add(criteriaBuilder.equal(root.get("quantity"),stock));
             }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-
-
         };
+
         Pageable pageable;
-        if(sort!=null && sort.isEmpty()){
+        if(sort!=null && !sort.isEmpty()){
             switch(sort){
                 case "price_low":
                     pageable = PageRequest.of(pageNumber!=null? pageNumber:0 ,10,Sort.by("sellingPrice").ascending());
                     break;
-
                 case "price_high":
                     pageable = PageRequest.of(pageNumber!=null? pageNumber:0 ,10,Sort.by("sellingPrice").descending());
                     break;
@@ -169,8 +175,8 @@ public class ProductServiceImpl implements ProductService {
         else{
             pageable=PageRequest.of(pageNumber!=null? pageNumber:0 , 10 , Sort.unsorted());
         }
-        return productRepository.findAll(spec , pageable);
 
+        return productRepository.findAll(spec , pageable);
     }
 
 
