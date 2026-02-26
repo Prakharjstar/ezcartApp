@@ -25,15 +25,12 @@ public class AuthController {
 
 
     @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> createUserHandler(@RequestBody SignupRequest req) throws Exception {
-       String jwt = authService.createUser(req);
-        AuthResponse res = new AuthResponse();
-        res.setJwt(jwt);
-        res.setMessage("register success");
-        res.setRole(USER_ROLE.ROLE_CUSTOMER);
+    public ResponseEntity<AuthResponse> createUserHandler(
+            @RequestBody SignupRequest req) throws Exception {
 
+        AuthResponse response = authService.createUser(req);
 
-        return ResponseEntity.ok(res);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/sent/login-signup-otp")
@@ -48,8 +45,8 @@ public class AuthController {
 
     @PostMapping("/signing")
     public ResponseEntity<AuthResponse> loginHandler(@RequestBody LoginRequest req) throws Exception {
-       AuthResponse authResponse= authService.signing(req);
+        AuthResponse authResponse= authService.signing(req);
         return ResponseEntity.ok(authResponse);
     }
 
-   }
+}

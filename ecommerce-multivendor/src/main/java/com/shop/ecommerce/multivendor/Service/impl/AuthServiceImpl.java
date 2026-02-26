@@ -23,7 +23,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -42,10 +41,13 @@ public class AuthServiceImpl implements AuthService {
     private static final String SELLER_PREFIX = "seller_";
     private static final String ADMIN_EMAIL = "prakharj1231@gmail.com";
 
-    // 🔹 Send OTP for Customer, Seller, Admin
+
+
     @Override
     public void sentLoginOtp(String email) throws Exception {
+
         USER_ROLE role;
+
         if (email.equals(ADMIN_EMAIL)) {
             role = USER_ROLE.ROLE_ADMIN;
         } else if (userRepository.findByEmail(email) != null) {
@@ -56,15 +58,18 @@ public class AuthServiceImpl implements AuthService {
             throw new Exception("User/Seller not found: " + email);
         }
 
-        // Remove previous OTP
+        // Remove old OTP
         VerificationCode existing = verificationCodeRepository.findByEmail(email);
-        if (existing != null) verificationCodeRepository.delete(existing);
+        if (existing != null) {
+            verificationCodeRepository.delete(existing);
+        }
 
-        // Generate OTP
+        // Generate new OTP
         String otp = OtpUtil.generateOtp();
+
         VerificationCode verificationCode = new VerificationCode();
-        verificationCode.setOtp(otp);
         verificationCode.setEmail(email);
+        verificationCode.setOtp(otp);
         verificationCodeRepository.save(verificationCode);
 
         // Send email
@@ -74,71 +79,84 @@ public class AuthServiceImpl implements AuthService {
 
         System.out.println("OTP sent to: " + email + " | Role: " + role);
     }
+
+
+
     @Override
-    public String createUser(SignupRequest req) throws Exception {
-        // 1️⃣ Check if OTP exists and is correct
-        VerificationCode verificationCode = verificationCodeRepository.findByEmail(req.getEmail());
-        if (verificationCode == null || !verificationCode.getOtp().equals(req.getOtp())) {
+    public AuthResponse createUser(SignupRequest req) throws Exception {
+
+        // 1️⃣ Validate OTP
+        VerificationCode verificationCode =
+                verificationCodeRepository.findByEmail(req.getEmail());
+
+        if (verificationCode == null ||
+                !verificationCode.getOtp().equals(req.getOtp())) {
             throw new Exception("Invalid OTP");
         }
 
         // 2️⃣ Check if user already exists
-        User user = userRepository.findByEmail(req.getEmail());
-        if (user != null) {
-            throw new Exception("User already exists with this email");
+        if (userRepository.findByEmail(req.getEmail()) != null) {
+            throw new Exception("User already exists");
         }
 
-        // 3️⃣ Create new Customer user
+        // 3️⃣ Create User
         User newUser = new User();
         newUser.setEmail(req.getEmail());
         newUser.setFullName(req.getFullName());
         newUser.setRole(USER_ROLE.ROLE_CUSTOMER);
 
-        newUser.setPassword(passwordEncoder.encode(req.getOtp())); // you can store OTP or random password
-
+        // Default encoded password (since OTP-based system)
+        newUser.setPassword(passwordEncoder.encode("DEFAULT_PASS"));
 
         User savedUser = userRepository.save(newUser);
 
-        // 4️⃣ Create Cart for new customer
+        // 4️⃣ Create Cart
         Cart cart = new Cart();
         cart.setUser(savedUser);
         cartRepository.save(cart);
 
-        // 5️⃣ Authenticate user immediately and generate JWT
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority(savedUser.getRole().name()));
+        // 5️⃣ Delete OTP after success
+        verificationCodeRepository.delete(verificationCode);
 
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                savedUser.getEmail(),
-                null,
-                authorities
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        return jwtProvider.generateToken(authentication); // return JWT to frontend
+        // 8️⃣ Return Full AuthResponse
+        AuthResponse response = new AuthResponse();
+
+        response.setMessage("Register Success");
+        response.setRole(savedUser.getRole());
+        response.setUser(savedUser);
+        response.setJwt(null);
+
+        return response;
     }
 
-    //  Login (Customer, Seller, Admin)
+
+
     @Override
     public AuthResponse signing(LoginRequest req) throws Exception {
+
         String username = req.getEmail();
         USER_ROLE role;
 
-        //  Admin login
+        // Admin login
         if (username.equals(ADMIN_EMAIL)) {
+
             role = USER_ROLE.ROLE_ADMIN;
+
             Authentication authentication = authenticateAdmin(req.getOtp());
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             return buildAuthResponse(authentication, role);
         }
 
-        // ✅ Customer/Seller login
+        // Customer or Seller login
         User user = userRepository.findByEmail(username);
+
         if (user != null) {
             role = USER_ROLE.ROLE_CUSTOMER;
         } else {
             Seller seller = sellerRepository.findByEmail(username);
+
             if (seller != null) {
                 role = USER_ROLE.ROLE_SELLER;
                 username = SELLER_PREFIX + username;
@@ -147,44 +165,69 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        Authentication authentication = authenticate(username, req.getOtp(), role);
+        Authentication authentication = authenticate(username, req.getOtp());
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         return buildAuthResponse(authentication, role);
     }
 
-    // 🔹 Authentication for Customer/Seller
-    private Authentication authenticate(String username, String otp, USER_ROLE role) throws Exception {
+    /* ============================================================
+       🔹 AUTHENTICATION METHODS
+    ============================================================ */
+
+    private Authentication authenticate(String username, String otp) throws Exception {
+
         String emailForOtp = username.startsWith(SELLER_PREFIX)
                 ? username.substring(SELLER_PREFIX.length())
                 : username;
 
-        VerificationCode verificationCode = verificationCodeRepository.findByEmail(emailForOtp);
-        if (verificationCode == null || !verificationCode.getOtp().equals(otp)) {
+        VerificationCode verificationCode =
+                verificationCodeRepository.findByEmail(emailForOtp);
+
+        if (verificationCode == null ||
+                !verificationCode.getOtp().equals(otp)) {
             throw new BadCredentialsException("Wrong OTP");
         }
 
-        UserDetails userDetails = customUserService.loadUserByUsername(username);
-        return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        UserDetails userDetails =
+                customUserService.loadUserByUsername(username);
+
+        return new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
     }
 
-    // 🔹 Authentication for Admin
     private Authentication authenticateAdmin(String otp) throws Exception {
-        VerificationCode verificationCode = verificationCodeRepository.findByEmail(ADMIN_EMAIL);
-        if (verificationCode == null || !verificationCode.getOtp().equals(otp)) {
+
+        VerificationCode verificationCode =
+                verificationCodeRepository.findByEmail(ADMIN_EMAIL);
+
+        if (verificationCode == null ||
+                !verificationCode.getOtp().equals(otp)) {
             throw new BadCredentialsException("Wrong OTP for Admin");
         }
 
-        UserDetails userDetails = customUserService.loadUserByUsername(ADMIN_EMAIL);
-        return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        UserDetails userDetails =
+                customUserService.loadUserByUsername(ADMIN_EMAIL);
+
+        return new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
     }
 
     private AuthResponse buildAuthResponse(Authentication authentication, USER_ROLE role) {
+
         String token = jwtProvider.generateToken(authentication);
+
         AuthResponse authResponse = new AuthResponse();
         authResponse.setJwt(token);
         authResponse.setMessage("Login Success");
         authResponse.setRole(role);
+
         return authResponse;
     }
 }

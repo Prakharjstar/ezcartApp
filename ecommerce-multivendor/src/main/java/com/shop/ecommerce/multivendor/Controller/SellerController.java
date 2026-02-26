@@ -32,14 +32,9 @@ public class SellerController {
 
 
     @PostMapping("/login")
-    public  ResponseEntity<AuthResponse> loginSeller(@RequestBody LoginRequest req) throws Exception {
+    public ResponseEntity<AuthResponse> loginSeller(@RequestBody LoginRequest req) throws Exception {
 
-        String otp = req.getOtp();
-        String email = req.getEmail();
-
-        req.setEmail("seller_"+email);
         AuthResponse authResponse = authService.signing(req);
-
         return ResponseEntity.ok(authResponse);
     }
 
