@@ -26,51 +26,73 @@ public class CouponServiceImpl implements CouponService {
     public Cart applyCoupon(String code, double orderValue, User user) throws Exception {
         Coupon coupon = couponRepository.findByCode(code);
 
-        Cart cart = cartRepository.findByUserId(user.getId());
-        if(coupon==null){
-            throw new Exception("coupon not valid");
+        if (coupon == null) {
+            throw new Exception("Coupon not valid");
         }
-        if(user.getUsedCoupons().contains(coupon)){
-            throw new Exception("coupon already used");
-        }
-        if(orderValue<coupon.getMinimumOrderValue()){
-            throw  new Exception("valid for  minimum order value "+ coupon.getMinimumOrderValue());
-        }
-        if(coupon.isActive() && LocalDate.now().isAfter(coupon.getValidityStartDate()) && LocalDate.now().isBefore(coupon.getValidityEndDate())){
-            user.getUsedCoupons().add(coupon);
-            userRepository.save(user);
-            double discountedPrice =( cart.getTotalSellingPrice()*coupon.getDiscountPercentage())/100;
-            cart.setTotalSellingPrice(cart.getTotalSellingPrice()-discountedPrice);
-            cart.setCouponCode(code);
-            cartRepository.save(cart);
-            return cart;
 
+        if (user.getUsedCoupons().contains(coupon)) {
+            throw new Exception("Coupon already used");
         }
-        throw  new Exception("coupon not valid");
+
+        if (orderValue < coupon.getMinimumOrderValue()) {
+            throw new Exception("Valid for minimum order value " + coupon.getMinimumOrderValue());
+        }
+
+        LocalDate today = LocalDate.now();
+        // Inclusive check: start <= today <= end
+        if (!coupon.isActive() || today.isBefore(coupon.getValidityStartDate()) || today.isAfter(coupon.getValidityEndDate())) {
+            throw new Exception("Coupon not valid at this time");
+        }
+
+        Cart cart = cartRepository.findByUserId(user.getId());
+
+        // Calculate discount and final price
+        double originalPrice = cart.getTotalSellingPrice();
+        double discountAmount = (originalPrice * coupon.getDiscountPercentage()) / 100.0;
+        double finalPrice = originalPrice - discountAmount;
+
+        // Update cart
+        cart.setDiscountAmount(discountAmount);
+        cart.setFinalPrice(finalPrice);
+        cart.setCouponCode(code);
+
+        // Mark coupon as used by user
+        user.getUsedCoupons().add(coupon);
+        userRepository.save(user);
+
+        cartRepository.save(cart);
+
+        return cart;
     }
 
     @Override
     public Cart removeCoupon(String code, User user) throws Exception {
         Coupon coupon = couponRepository.findByCode(code);
-        if(coupon==null){
 
-            throw new Exception("coupon not found...");
+        if (coupon == null) {
+            throw new Exception("Coupon not found");
         }
+
         Cart cart = cartRepository.findByUserId(user.getId());
-        double discountedPrice =( cart.getTotalSellingPrice()*coupon.getDiscountPercentage())/100;
-        cart.setTotalSellingPrice(cart.getTotalSellingPrice()-discountedPrice);
+
+        // Reset discount and final price
+        cart.setDiscountAmount(0);
+        cart.setFinalPrice(cart.getTotalSellingPrice());
         cart.setCouponCode(null);
 
-        return cartRepository.save(cart);
+        cartRepository.save(cart);
+
+        return cart;
     }
 
     @Override
     public Coupon findCouponById(Long id) throws Exception {
-        return couponRepository.findById(id).orElseThrow(()->  new Exception("coupon not found"));
+        return couponRepository.findById(id)
+                .orElseThrow(() -> new Exception("Coupon not found"));
     }
 
     @Override
-    @PreAuthorize("hasRole ('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public Coupon createCoupon(Coupon coupon) {
         return couponRepository.save(coupon);
     }
@@ -81,10 +103,9 @@ public class CouponServiceImpl implements CouponService {
     }
 
     @Override
-    @PreAuthorize("hasRole ('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteCoupon(Long id) throws Exception {
         findCouponById(id);
         couponRepository.deleteById(id);
-
     }
 }

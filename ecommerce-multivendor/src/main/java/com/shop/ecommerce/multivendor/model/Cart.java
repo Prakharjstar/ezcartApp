@@ -28,6 +28,11 @@ public class Cart {
     private int totalMrpPrice;
     private int discount;
 
+
+    private double discountAmount;      // calculated discount
+
+    private double finalPrice;          // subtotal - discount
+
     private String couponCode;
 
 
