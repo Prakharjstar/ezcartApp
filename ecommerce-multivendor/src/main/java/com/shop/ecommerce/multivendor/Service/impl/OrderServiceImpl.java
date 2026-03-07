@@ -11,6 +11,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -126,6 +127,18 @@ public class OrderServiceImpl implements OrderService {
     public OrderItem getOrderItemById(Long id) throws Exception {
         return orderItemRepository.findById(id).orElseThrow(()-> new Exception("order item not exist...."));
 
+    }
+
+    @Override
+    public int countTodayOrders(User user) {
+
+        LocalDate today = LocalDate.now();
+
+        List<Order> orders = orderRepository.findByUserId(user.getId());
+
+        return (int) orders.stream()
+                .filter(order -> order.getOrderDate().toLocalDate().equals(today))
+                .count();
     }
 
 }

@@ -103,4 +103,14 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
+    @GetMapping("/today")
+    public ResponseEntity<Integer> getTodayOrders(@RequestHeader("Authorization") String jwt) throws Exception {
+
+        User user = userService.findUserByJwtToken(jwt);
+
+        int ordersToday = orderService.countTodayOrders(user);
+
+        return new ResponseEntity<>(ordersToday, HttpStatus.OK);
+    }
+
 }
