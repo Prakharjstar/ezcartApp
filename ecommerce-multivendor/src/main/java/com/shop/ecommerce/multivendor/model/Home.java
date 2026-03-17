@@ -8,7 +8,7 @@ import java.util.*;
 @NoArgsConstructor
 public class Home {
 
-    private List<HomeCategory> gird;
+    private List<HomeCategory> grid;
 
     private List<HomeCategory> shopByCategories;
 

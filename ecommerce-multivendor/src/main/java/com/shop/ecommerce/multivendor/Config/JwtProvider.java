@@ -1,5 +1,6 @@
 package com.shop.ecommerce.multivendor.Config;
 
+import com.shop.ecommerce.multivendor.model.Seller;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -70,5 +71,14 @@ public class JwtProvider {
         }
 
         return String.join(",", auths);
+    }
+    public String generateToken(Seller seller) {
+        return Jwts.builder()
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 86400000)) // 1 day
+                .claim("email", seller.getEmail())
+                .claim("role", seller.getRole().name()) // add role claim
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
     }
 }

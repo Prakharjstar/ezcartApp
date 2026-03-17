@@ -48,7 +48,7 @@ public class HomeServiceImpl implements HomeService {
        }else createdDeals=dealRepository.findAll();
 
        Home home = new Home();
-       home.setGird(gridCategories);
+       home.setGrid(gridCategories);
        home.setShopByCategories(shopByCategries);
        home.setElectricCategories(electricCategories);
        home.setDeals(createdDeals);

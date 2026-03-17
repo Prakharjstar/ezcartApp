@@ -4,6 +4,8 @@ package com.shop.ecommerce.multivendor.model;
 
 
 
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.Embedded;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Embeddable
 public class BusinessDetails {
     private String businessName;
     private String businessEmail;
