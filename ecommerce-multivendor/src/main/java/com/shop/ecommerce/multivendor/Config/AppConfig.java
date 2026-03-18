@@ -24,11 +24,16 @@ public class AppConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http.sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // Public auth endpoints
-                        .requestMatchers("/auth/**").permitAll()       // <--- allow OTP login & signing
+
+                        // PUBLIC APIs
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/api/sellers/send-otp").permitAll()
+                        .requestMatchers("/api/sellers/login").permitAll()
                         .requestMatchers("/api/products/*/reviews").permitAll()
-                        // Protected API endpoints
+
+                        // PROTECTED APIs
                         .requestMatchers("/api/**").authenticated()
+
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(new JwtTokenValidator(), BasicAuthenticationFilter.class)

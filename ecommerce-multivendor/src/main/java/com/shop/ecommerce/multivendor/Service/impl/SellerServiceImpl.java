@@ -38,103 +38,92 @@ public class SellerServiceImpl implements SellerService {
         }
     }
 
-    @Override
-    public Seller getSellerProfile(String jwt) throws Exception {
-        String email = jwtProvider.getEmailFromJwtToken(jwt);
-        return this.getSellerByEmail(email);
-    }
-
+    // ====================== CREATE SELLER ======================
     @Override
     public Seller createSeller(Seller seller) throws Exception {
-        Seller sellerExists = sellerRepository.findByEmail(seller.getEmail());
-        if (sellerExists != null) {
-            throw new Exception("Seller already exists, use different email");
-        }
+        Seller existing = sellerRepository.findByEmail(seller.getEmail());
+        if (existing != null) throw new Exception("Seller already exists");
+
         Address savedAddress = addressRepository.save(seller.getPickupAddress());
 
-        Seller newSeller = new Seller();
-        newSeller.setEmail(seller.getEmail());
-        newSeller.setPassword(seller.getPassword());
-        newSeller.setSellerName(seller.getSellerName());
-        newSeller.setPickupAddress(savedAddress);
-        newSeller.setGstin(seller.getGstin());
-        newSeller.setRole(USER_ROLE.ROLE_SELLER);
-        newSeller.setMobile(seller.getMobile());
-        newSeller.setBankDetails(seller.getBankDetails());
-        newSeller.setBusinessDetails(seller.getBusinessDetails());
-        return sellerRepository.save(newSeller);
+        seller.setPassword(passwordEncoder.encode(seller.getPassword()));
+        seller.setPickupAddress(savedAddress);
+        seller.setRole(USER_ROLE.ROLE_SELLER);
+        seller.setAccountStatus(AccountStatus.ACTIVE);
+
+        return sellerRepository.save(seller);
     }
 
+    // ====================== GET SELLER ======================
     @Override
     public Seller getSellerById(Long id) throws SellerException {
         return sellerRepository.findById(id)
-                .orElseThrow(() -> new SellerException("Seller not found with id " + id));
+                .orElseThrow(() -> new SellerException("Seller not found with id: " + id));
     }
 
     @Override
     public Seller getSellerByEmail(String email) throws Exception {
         Seller seller = sellerRepository.findByEmail(email);
-        if (seller == null) {
-            throw new Exception("Seller not found");
-        }
+        if (seller == null) throw new Exception("Seller not found with email: " + email);
         return seller;
     }
 
     @Override
     public List<Seller> getAllSeller(AccountStatus status) {
-        return sellerRepository.findByAccountStatus(status);
+        if (status != null) {
+            return sellerRepository.findByAccountStatus(status);
+        }
+        return sellerRepository.findAll();
     }
 
+    // ====================== UPDATE SELLER ======================
     @Override
     public Seller updateSeller(Long id, Seller seller) throws Exception {
-        Seller existingSeller = this.getSellerById(id);
+        Seller existing = getSellerById(id);
 
-        if (seller.getSellerName() != null) existingSeller.setSellerName(seller.getSellerName());
-        if (seller.getMobile() != null) existingSeller.setMobile(seller.getMobile());
-        if (seller.getEmail() != null) existingSeller.setEmail(seller.getEmail());
+        existing.setSellerName(seller.getSellerName());
+        existing.setMobile(seller.getMobile());
+        existing.setGstin(seller.getGstin());
+        existing.setBankDetails(seller.getBankDetails());
+        existing.setBusinessDetails(seller.getBusinessDetails());
 
-        if (seller.getBusinessDetails() != null && seller.getBusinessDetails().getBusinessName() != null)
-            existingSeller.getBusinessDetails().setBusinessName(seller.getBusinessDetails().getBusinessName());
-
-        if (seller.getBankDetails() != null &&
-                seller.getBankDetails().getAccountHolderName() != null &&
-                seller.getBankDetails().getAccountNumber() != null &&
-                seller.getBankDetails().getIfscCode() != null) {
-
-            existingSeller.getBankDetails().setAccountHolderName(seller.getBankDetails().getAccountHolderName());
-            existingSeller.getBankDetails().setAccountNumber(seller.getBankDetails().getAccountNumber());
-            existingSeller.getBankDetails().setIfscCode(seller.getBankDetails().getIfscCode());
+        if (seller.getPickupAddress() != null) {
+            Address savedAddress = addressRepository.save(seller.getPickupAddress());
+            existing.setPickupAddress(savedAddress);
         }
 
-        if (seller.getPickupAddress() != null &&
-                seller.getPickupAddress().getAddress() != null &&
-                seller.getPickupAddress().getMobile() != null) {
-
-            existingSeller.getPickupAddress().setAddress(seller.getPickupAddress().getAddress());
-            existingSeller.getPickupAddress().setCity(seller.getPickupAddress().getCity());
-            existingSeller.getPickupAddress().setState(seller.getPickupAddress().getState());
-            existingSeller.getPickupAddress().setMobile(seller.getPickupAddress().getMobile());
-            existingSeller.getPickupAddress().setPinCode(seller.getPickupAddress().getPinCode());
-        }
-
-        if (seller.getGstin() != null) existingSeller.setGstin(seller.getGstin());
-
-        return sellerRepository.save(existingSeller);
+        return sellerRepository.save(existing);
     }
 
+    public void hashExistingPasswords() {
+        List<Seller> sellers = sellerRepository.findAll();
+        for (Seller seller : sellers) {
+            String plain = seller.getPassword();
+
+            // Only hash if it is not already BCrypt
+            if (!plain.startsWith("$2a$")) {
+                seller.setPassword(passwordEncoder.encode(plain));
+            }
+        }
+        sellerRepository.saveAll(sellers);
+        System.out.println("All existing passwords hashed!");
+    }
+
+    // ====================== DELETE SELLER ======================
     @Override
     public void deleteSeller(Long id) throws Exception {
-        Seller seller = getSellerById(id);
-        sellerRepository.delete(seller);
+        Seller existing = getSellerById(id);
+        sellerRepository.delete(existing);
     }
 
+    // ====================== EMAIL VERIFICATION ======================
     @Override
     public Seller verifyEmail(String email, String otp) throws Exception {
-        Seller seller = getSellerByEmail(email);
-        seller.setEmailVerified(true);
-        return sellerRepository.save(seller);
+        if (!validateOtp(email, otp)) throw new Exception("OTP verification failed");
+        return getSellerByEmail(email);
     }
 
+    // ====================== ACCOUNT STATUS ======================
     @Override
     public Seller updateSellerAccountStatus(Long sellerId, AccountStatus status) throws Exception {
         Seller seller = getSellerById(sellerId);
@@ -142,31 +131,57 @@ public class SellerServiceImpl implements SellerService {
         return sellerRepository.save(seller);
     }
 
-    // 🔹 OTP METHODS
+    // ====================== PROFILE ======================
+    @Override
+    public Seller getSellerProfile(String jwt) throws Exception {
+        String email = jwtProvider.getEmailFromJwtToken(jwt);
+        return getSellerByEmail(email);
+    }
+
+    // ====================== LOGIN (EMAIL + PASSWORD) ======================
+    @Override
+    public Map<String, Object> loginSellerWithEmailPassword(String email, String password) throws Exception {
+        Seller seller = sellerRepository.findByEmail(email);
+        if (seller == null) throw new SellerException("Seller not found");
+
+        if (seller.getRole() != USER_ROLE.ROLE_SELLER) throw new SellerException("Access denied");
+        if (seller.getAccountStatus() != AccountStatus.ACTIVE) throw new SellerException("Account not active");
+
+        if (!passwordEncoder.matches(password, seller.getPassword())) throw new SellerException("Invalid password");
+
+        String token = jwtProvider.generateToken(seller);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", token);
+        response.put("email", seller.getEmail());
+        response.put("role", seller.getRole());
+        response.put("sellerName", seller.getSellerName());
+
+        return response;
+    }
+
+    // ====================== OTP ======================
     @Override
     public void generateAndSendOtp(String email) throws Exception {
-        Seller seller = sellerRepository.findByEmail(email);
-        if (seller == null) throw new Exception("Seller not found");
+        Seller seller = getSellerByEmail(email);
+
+        if (seller.getRole() != USER_ROLE.ROLE_SELLER) throw new Exception("Access denied");
+        if (seller.getAccountStatus() != AccountStatus.ACTIVE) throw new Exception("Account not active");
 
         String otp = String.format("%06d", random.nextInt(999999));
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(5);
+        otpStore.put(email, new OtpEntry(otp, LocalDateTime.now().plusMinutes(5)));
 
-        otpStore.put(email, new OtpEntry(otp, expiresAt));
-
-        // 🔹 Replace with email sending in production
-        System.out.println("OTP for " + email + " is: " + otp);
+        System.out.println("OTP for " + email + ": " + otp);
     }
 
     @Override
     public boolean validateOtp(String email, String otp) throws Exception {
         OtpEntry entry = otpStore.get(email);
-        if (entry == null) throw new Exception("No OTP sent for this email");
-
+        if (entry == null) throw new Exception("No OTP found for email");
         if (LocalDateTime.now().isAfter(entry.expiresAt)) {
             otpStore.remove(email);
             throw new Exception("OTP expired");
         }
-
         if (!entry.otp.equals(otp)) throw new Exception("Invalid OTP");
 
         otpStore.remove(email);

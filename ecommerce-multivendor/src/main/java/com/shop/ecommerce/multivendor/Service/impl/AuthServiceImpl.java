@@ -15,15 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -41,19 +36,17 @@ public class AuthServiceImpl implements AuthService {
     private static final String SELLER_PREFIX = "seller_";
     private static final String ADMIN_EMAIL = "prakharj1231@gmail.com";
 
-
-
+    // ================================
+    // 🔹 SEND OTP
+    // ================================
     @Override
     public void sentLoginOtp(String email) throws Exception {
 
-        USER_ROLE role;
-
-        if (email.equals(ADMIN_EMAIL)) {
-            role = USER_ROLE.ROLE_ADMIN;
-        } else if (userRepository.findByEmail(email) != null) {
-            role = USER_ROLE.ROLE_CUSTOMER;
+        // Role check
+        if (userRepository.findByEmail(email) != null) {
+            System.out.println("Customer login OTP");
         } else if (sellerRepository.findByEmail(email) != null) {
-            role = USER_ROLE.ROLE_SELLER;
+            System.out.println("Seller login OTP");
         } else {
             throw new Exception("User/Seller not found: " + email);
         }
@@ -72,56 +65,47 @@ public class AuthServiceImpl implements AuthService {
         verificationCode.setOtp(otp);
         verificationCodeRepository.save(verificationCode);
 
-        // Send email
-        String subject = "Ezcart Login OTP";
-        String text = "Your OTP is: " + otp;
-        emailService.sendVerificationOtpEmail(email, otp, subject, text);
+        // Send email + console
+        emailService.sendVerificationOtpEmail(email, otp);
 
-        System.out.println("OTP sent to: " + email + " | Role: " + role);
+        System.out.println("OTP generated and sent to email & console: " + otp);
     }
-
-
-
+    // ================================
+    // 🔹 CREATE USER (SIGNUP)
+    // ================================
     @Override
     public AuthResponse createUser(SignupRequest req) throws Exception {
 
-        // 1️⃣ Validate OTP
-        VerificationCode verificationCode =
-                verificationCodeRepository.findByEmail(req.getEmail());
-
-        if (verificationCode == null ||
-                !verificationCode.getOtp().equals(req.getOtp())) {
+        // Validate OTP
+        VerificationCode verificationCode = verificationCodeRepository.findByEmail(req.getEmail());
+        if (verificationCode == null || !verificationCode.getOtp().equals(req.getOtp())) {
             throw new Exception("Invalid OTP");
         }
 
-        // 2️⃣ Check if user already exists
+        // Check if user exists
         if (userRepository.findByEmail(req.getEmail()) != null) {
             throw new Exception("User already exists");
         }
 
-        // 3️⃣ Create User
+        // Create user
         User newUser = new User();
         newUser.setEmail(req.getEmail());
         newUser.setFullName(req.getFullName());
         newUser.setRole(USER_ROLE.ROLE_CUSTOMER);
-
-        // Default encoded password (since OTP-based system)
-        newUser.setPassword(passwordEncoder.encode("DEFAULT_PASS"));
+        newUser.setPassword(passwordEncoder.encode("DEFAULT_PASS")); // default password
 
         User savedUser = userRepository.save(newUser);
 
-        // 4️⃣ Create Cart
+        // Create cart
         Cart cart = new Cart();
         cart.setUser(savedUser);
         cartRepository.save(cart);
 
-        // 5️⃣ Delete OTP after success
+        // Delete OTP
         verificationCodeRepository.delete(verificationCode);
 
-
-        // 8️⃣ Return Full AuthResponse
+        // Build response
         AuthResponse response = new AuthResponse();
-
         response.setMessage("Register Success");
         response.setRole(savedUser.getRole());
         response.setUser(savedUser);
@@ -130,8 +114,9 @@ public class AuthServiceImpl implements AuthService {
         return response;
     }
 
-
-
+    // ================================
+    // 🔹 LOGIN (OTP)
+    // ================================
     @Override
     public AuthResponse signing(LoginRequest req) throws Exception {
 
@@ -140,26 +125,21 @@ public class AuthServiceImpl implements AuthService {
 
         // Admin login
         if (username.equals(ADMIN_EMAIL)) {
-
             role = USER_ROLE.ROLE_ADMIN;
-
             Authentication authentication = authenticateAdmin(req.getOtp());
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
             return buildAuthResponse(authentication, role);
         }
 
         // Customer or Seller login
         User user = userRepository.findByEmail(username);
-
         if (user != null) {
             role = USER_ROLE.ROLE_CUSTOMER;
         } else {
             Seller seller = sellerRepository.findByEmail(username);
-
             if (seller != null) {
                 role = USER_ROLE.ROLE_SELLER;
-                username = SELLER_PREFIX + username;
+                username = SELLER_PREFIX + username; // add prefix for userDetails
             } else {
                 throw new BadCredentialsException("User not found");
             }
@@ -171,9 +151,9 @@ public class AuthServiceImpl implements AuthService {
         return buildAuthResponse(authentication, role);
     }
 
-    /* ============================================================
-       🔹 AUTHENTICATION METHODS
-    ============================================================ */
+    // ================================
+    // 🔹 AUTHENTICATION HELPERS
+    // ================================
 
     private Authentication authenticate(String username, String otp) throws Exception {
 
@@ -184,13 +164,14 @@ public class AuthServiceImpl implements AuthService {
         VerificationCode verificationCode =
                 verificationCodeRepository.findByEmail(emailForOtp);
 
-        if (verificationCode == null ||
-                !verificationCode.getOtp().equals(otp)) {
-            throw new BadCredentialsException("Wrong OTP");
+        if (verificationCode == null || !verificationCode.getOtp().equals(otp)) {
+            throw new BadCredentialsException("No OTP found for this email");
         }
 
-        UserDetails userDetails =
-                customUserService.loadUserByUsername(username);
+
+        verificationCodeRepository.delete(verificationCode);
+
+        UserDetails userDetails = customUserService.loadUserByUsername(username);
 
         return new UsernamePasswordAuthenticationToken(
                 userDetails,
@@ -198,20 +179,21 @@ public class AuthServiceImpl implements AuthService {
                 userDetails.getAuthorities()
         );
     }
+        // Delete OTP after successful login
+
+
 
     private Authentication authenticateAdmin(String otp) throws Exception {
 
-        VerificationCode verificationCode =
-                verificationCodeRepository.findByEmail(ADMIN_EMAIL);
-
-        if (verificationCode == null ||
-                !verificationCode.getOtp().equals(otp)) {
+        VerificationCode verificationCode = verificationCodeRepository.findByEmail(ADMIN_EMAIL);
+        if (verificationCode == null || !verificationCode.getOtp().equals(otp)) {
             throw new BadCredentialsException("Wrong OTP for Admin");
         }
 
-        UserDetails userDetails =
-                customUserService.loadUserByUsername(ADMIN_EMAIL);
+        // Delete OTP after login
+        verificationCodeRepository.delete(verificationCode);
 
+        UserDetails userDetails = customUserService.loadUserByUsername(ADMIN_EMAIL);
         return new UsernamePasswordAuthenticationToken(
                 userDetails,
                 null,
@@ -220,14 +202,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private AuthResponse buildAuthResponse(Authentication authentication, USER_ROLE role) {
-
         String token = jwtProvider.generateToken(authentication);
-
         AuthResponse authResponse = new AuthResponse();
         authResponse.setJwt(token);
         authResponse.setMessage("Login Success");
         authResponse.setRole(role);
-
         return authResponse;
     }
 }
