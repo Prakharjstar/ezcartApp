@@ -160,6 +160,16 @@ public class SellerServiceImpl implements SellerService {
         return response;
     }
 
+    @Override
+    public List<Seller> getAllSellers() {
+        return sellerRepository.findAll();
+    }
+
+    @Override
+    public List<Seller> getSellersByStatus(AccountStatus status) {
+        return sellerRepository.findByAccountStatus(status);
+    }
+
     // ====================== OTP ======================
     @Override
     public void generateAndSendOtp(String email) throws Exception {

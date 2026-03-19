@@ -19,7 +19,13 @@ public interface SellerService {
     Seller createSeller(Seller seller) throws Exception;
     Seller getSellerById(Long id) throws SellerException;
     Seller getSellerByEmail(String email) throws Exception;
+    List<Seller> getAllSellers();
+
+
+    List<Seller> getSellersByStatus(AccountStatus status);
+
     List<Seller> getAllSeller(AccountStatus status);
+
     Seller updateSeller(Long id, Seller seller) throws Exception;
     void deleteSeller(Long id) throws Exception;
 
@@ -32,4 +38,6 @@ public interface SellerService {
     // ================== OTP (OPTIONAL) ==================
     void generateAndSendOtp(String email) throws Exception;
     boolean validateOtp(String email, String otp) throws Exception;
+
+
 }

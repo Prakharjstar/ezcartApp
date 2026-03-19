@@ -41,6 +41,24 @@ public class SellerController {
         }
     }
 
+    @GetMapping
+    public ResponseEntity<?> getAllSellers(
+            @RequestParam(required = false) AccountStatus status
+    ) {
+        try {
+
+            if (status == null) {
+                return ResponseEntity.ok(sellerService.getAllSellers());
+            }
+
+            return ResponseEntity.ok(sellerService.getSellersByStatus(status));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
     // ===== OPTIONAL: OLD LOGIN WITH OTP =====
     @PostMapping("/login")
     public ResponseEntity<?> loginWithOtp(@RequestBody Map<String, String> payload) {
