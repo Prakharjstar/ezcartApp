@@ -45,7 +45,7 @@ public class AuthServiceImpl implements AuthService {
         // Role check
         if (userRepository.findByEmail(email) != null) {
             System.out.println("Customer login OTP");
-        } else if (sellerRepository.findByEmail(email) != null) {
+        } else if (sellerRepository.findByEmailIgnoreCase(email) != null) {
             System.out.println("Seller login OTP");
         } else {
             throw new Exception("User/Seller not found: " + email);
@@ -136,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
         if (user != null) {
             role = USER_ROLE.ROLE_CUSTOMER;
         } else {
-            Seller seller = sellerRepository.findByEmail(username);
+            Seller seller = sellerRepository.findByEmailIgnoreCase(username);
             if (seller != null) {
                 role = USER_ROLE.ROLE_SELLER;
                 username = SELLER_PREFIX + username; // add prefix for userDetails

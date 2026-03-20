@@ -30,7 +30,7 @@ public class CustomUserServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         if(username.startsWith(SELLER_PREFIX)){
             String actualUsername = username.substring(SELLER_PREFIX.length());
-            Seller seller = sellerRepository.findByEmail(actualUsername);
+            Seller seller = sellerRepository.findByEmailIgnoreCase(actualUsername);
 
             if(seller!=null){
                 return buildUserDetails(seller.getEmail(), seller.getPassword() ,seller.getRole());

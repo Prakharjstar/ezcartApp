@@ -41,7 +41,7 @@ public class SellerServiceImpl implements SellerService {
     // ====================== CREATE SELLER ======================
     @Override
     public Seller createSeller(Seller seller) throws Exception {
-        Seller existing = sellerRepository.findByEmail(seller.getEmail());
+        Seller existing = sellerRepository.findByEmailIgnoreCase(seller.getEmail());
         if (existing != null) throw new Exception("Seller already exists");
 
         Address savedAddress = addressRepository.save(seller.getPickupAddress());
@@ -63,7 +63,7 @@ public class SellerServiceImpl implements SellerService {
 
     @Override
     public Seller getSellerByEmail(String email) throws Exception {
-        Seller seller = sellerRepository.findByEmail(email);
+        Seller seller = sellerRepository.findByEmailIgnoreCase(email.trim());
         if (seller == null) throw new Exception("Seller not found with email: " + email);
         return seller;
     }
@@ -141,7 +141,7 @@ public class SellerServiceImpl implements SellerService {
     // ====================== LOGIN (EMAIL + PASSWORD) ======================
     @Override
     public Map<String, Object> loginSellerWithEmailPassword(String email, String password) throws Exception {
-        Seller seller = sellerRepository.findByEmail(email);
+        Seller seller = sellerRepository.findByEmailIgnoreCase(email);
         if (seller == null) throw new SellerException("Seller not found");
 
         if (seller.getRole() != USER_ROLE.ROLE_SELLER) throw new SellerException("Access denied");

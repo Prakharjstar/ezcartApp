@@ -29,6 +29,7 @@ public class AppConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/api/sellers/send-otp").permitAll()
                         .requestMatchers("/api/sellers/login").permitAll()
+                        .requestMatchers("/api/sellers/register").permitAll()
                         .requestMatchers("/api/products/*/reviews").permitAll()
 
                         // PROTECTED APIs

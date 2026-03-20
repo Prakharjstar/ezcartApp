@@ -1,14 +1,17 @@
 package com.shop.ecommerce.multivendor.Controller;
 
+import com.shop.ecommerce.multivendor.Service.ProductService;
 import com.shop.ecommerce.multivendor.Service.SellerService;
 import com.shop.ecommerce.multivendor.domain.AccountStatus;
 import com.shop.ecommerce.multivendor.domain.USER_ROLE;
+import com.shop.ecommerce.multivendor.model.Product;
 import com.shop.ecommerce.multivendor.model.Seller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -17,6 +20,7 @@ import java.util.Map;
 public class SellerController {
 
     private final SellerService sellerService;
+    private final ProductService productService;
 
     // REGISTER SELLER
     @PostMapping("/register")
@@ -65,6 +69,8 @@ public class SellerController {
 
         String email = payload.get("email");
         String otp = payload.get("otp");
+
+        System.out.println("LOGIN EMAIL RECEIVED: [" + email + "]");
 
         try {
             Seller seller = sellerService.getSellerByEmail(email);
@@ -126,5 +132,14 @@ public class SellerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", e.getMessage()));
         }
+    }
+    @GetMapping("/products")
+    public List<Product> getSellerProducts(@RequestHeader("Authorization") String authHeader) throws Exception {
+
+        String jwt = authHeader.substring(7);
+
+        Seller seller = sellerService.getSellerProfile(jwt);
+
+        return productService.getProductBySellerId(seller.getId());
     }
 }
