@@ -8,7 +8,6 @@ import com.shop.ecommerce.multivendor.repository.CartRepository;
 import com.shop.ecommerce.multivendor.repository.CouponRepository;
 import com.shop.ecommerce.multivendor.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -39,20 +38,29 @@ public class CouponServiceImpl implements CouponService {
         }
 
         LocalDate today = LocalDate.now();
-        // Inclusive check: start <= today <= end
         if (!coupon.isActive() || today.isBefore(coupon.getValidityStartDate()) || today.isAfter(coupon.getValidityEndDate())) {
             throw new Exception("Coupon not valid at this time");
         }
 
         Cart cart = cartRepository.findByUserId(user.getId());
 
-        // Calculate discount and final price
+        double discountAmount = 0;
         double originalPrice = cart.getTotalSellingPrice();
-        double discountAmount = (originalPrice * coupon.getDiscountPercentage()) / 100.0;
+
+        // ✅ Calculate discount based on type
+        if (coupon.getDiscountType() == Coupon.DiscountType.PERCENTAGE) {
+            discountAmount = (originalPrice * coupon.getDiscountValue()) / 100.0;
+            if (coupon.getMaxDiscount() != null && discountAmount > coupon.getMaxDiscount()) {
+                discountAmount = coupon.getMaxDiscount();
+            }
+        } else if (coupon.getDiscountType() == Coupon.DiscountType.FIXED) {
+            discountAmount = coupon.getDiscountValue();
+        }
+
         double finalPrice = originalPrice - discountAmount;
 
         // Update cart
-        cart.setDiscountAmount(discountAmount);
+        cart.setCouponDiscountAmount(discountAmount);
         cart.setFinalPrice(finalPrice);
         cart.setCouponCode(code);
 
@@ -67,32 +75,22 @@ public class CouponServiceImpl implements CouponService {
 
     @Override
     public Cart removeCoupon(String code, User user) throws Exception {
-        Coupon coupon = couponRepository.findByCode(code);
-
-        if (coupon == null) {
-            throw new Exception("Coupon not found");
-        }
-
         Cart cart = cartRepository.findByUserId(user.getId());
 
-        // Reset discount and final price
-        cart.setDiscountAmount(0);
-        cart.setFinalPrice(cart.getTotalSellingPrice());
         cart.setCouponCode(null);
+        cart.setCouponDiscountAmount(0);
+        cart.setFinalPrice(cart.getTotalSellingPrice());
 
         cartRepository.save(cart);
-
         return cart;
     }
 
     @Override
     public Coupon findCouponById(Long id) throws Exception {
-        return couponRepository.findById(id)
-                .orElseThrow(() -> new Exception("Coupon not found"));
+        return couponRepository.findById(id).orElseThrow(() -> new Exception("Coupon not found"));
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
     public Coupon createCoupon(Coupon coupon) {
         return couponRepository.save(coupon);
     }
@@ -103,9 +101,8 @@ public class CouponServiceImpl implements CouponService {
     }
 
     @Override
-    @PreAuthorize("hasRole('ADMIN')")
     public void deleteCoupon(Long id) throws Exception {
-        findCouponById(id);
-        couponRepository.deleteById(id);
+        Coupon coupon = findCouponById(id);
+        couponRepository.delete(coupon);
     }
 }

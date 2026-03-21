@@ -7,80 +7,94 @@ import com.shop.ecommerce.multivendor.model.Product;
 import com.shop.ecommerce.multivendor.model.User;
 import com.shop.ecommerce.multivendor.repository.CartRepository;
 import com.shop.ecommerce.multivendor.repository.CartitemRepository;
-import jakarta.persistence.Id;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class CartServiceImpl implements CartService {
+
     private final CartRepository cartRepository;
     private final CartitemRepository cartitemRepository;
 
     @Override
     public CartItem addcartItem(User user, Product product, String size, int quantity) {
-        Cart cart =findUserCart(user);
-        CartItem isPresent=cartitemRepository.findByCartAndProductAndSize(cart ,product ,size);
+        Cart cart = findUserCart(user);
 
-        if(isPresent==null){
+        CartItem existingItem = cartitemRepository.findByCartAndProductAndSize(cart, product, size);
+
+        if (existingItem == null) {
             CartItem cartItem = new CartItem();
             cartItem.setProduct(product);
             cartItem.setQuantity(quantity);
-            cartItem.setUserId(user.getId());
             cartItem.setSize(size);
-
-            int totalPrice = quantity*product.getSellingPrice();
-            cartItem.setSellingPrice(totalPrice);
-            cartItem.setMrpPrice(quantity* product.getMrpPrice());
+            cartItem.setUserId(user.getId());
+            cartItem.setSellingPrice(product.getSellingPrice() * quantity);
+            cartItem.setMrpPrice(product.getMrpPrice() * quantity);
 
             cart.getCartItems().add(cartItem);
             cartItem.setCart(cart);
 
-            return cartitemRepository.save(cartItem);
+            cartitemRepository.save(cartItem);
+        } else {
+            existingItem.setQuantity(existingItem.getQuantity() + quantity);
+            existingItem.setSellingPrice(existingItem.getQuantity() * product.getSellingPrice());
+            existingItem.setMrpPrice(existingItem.getQuantity() * product.getMrpPrice());
+            cartitemRepository.save(existingItem);
         }
 
-        return isPresent;
+        // Recalculate totals without overwriting coupon discount
+        return recalcCart(cart).getCartItems().stream()
+                .filter(i -> i.getProduct().getId().equals(product.getId()) && i.getSize().equals(size))
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
     public Cart findUserCart(User user) {
         Cart cart = cartRepository.findByUserId(user.getId());
-
-        // If user has no cart, create a new one
         if (cart == null) {
             cart = new Cart();
             cart.setUser(user);
+            cart.setCartItems(new ArrayList<>());
             cart.setTotalItem(0);
             cart.setTotalMrpPrice(0);
             cart.setTotalSellingPrice(0);
-            cart.setDiscount(0);
+            cart.setProductDiscountAmount(0);
+            cart.setCouponDiscountAmount(0);
+            cart.setFinalPrice(0);
             cartRepository.save(cart);
         }
 
-        int totalPrice = 0;
-        int totalDiscountedPrice = 0;
-        int totalItem = 0;
-
-        for (CartItem cartItem : cart.getCartItems()) {
-            totalPrice += cartItem.getMrpPrice();
-            totalDiscountedPrice += cartItem.getSellingPrice();
-            totalItem += cartItem.getQuantity(); // note: use += instead of =
-        }
-
-        cart.setTotalMrpPrice(totalPrice);
-        cart.setTotalSellingPrice(totalDiscountedPrice);
-        cart.setTotalItem(totalItem);
-        cart.setDiscount(calculateDiscountPercentage(totalPrice, totalDiscountedPrice));
-
-        return cart;
+        return recalcCart(cart);
     }
 
-    private int calculateDiscountPercentage(int mrpPrice, int sellingPrice) {
-        if(mrpPrice<=0){
-           return 0;
+    // Recalculate totals
+    private Cart recalcCart(Cart cart) {
+        double totalMrp = 0;
+        double totalSelling = 0;
+        int totalItems = 0;
+
+        List<CartItem> items = cart.getCartItems() != null ? cart.getCartItems() : new ArrayList<>();
+
+        for (CartItem item : items) {
+            totalMrp += item.getMrpPrice();
+            totalSelling += item.getSellingPrice();
+            totalItems += item.getQuantity();
         }
-        double discount = mrpPrice - sellingPrice;
-        double discountPercentage = (discount/mrpPrice)*100;
-        return (int)discountPercentage;
+
+        cart.setTotalMrpPrice(totalMrp);
+        cart.setTotalSellingPrice(totalSelling);
+        cart.setProductDiscountAmount(totalMrp - totalSelling);
+
+        // Keep coupon discount as-is; final price considers coupon
+        cart.setFinalPrice(totalSelling - cart.getCouponDiscountAmount());
+        cart.setTotalItem(totalItems);
+
+        cartRepository.save(cart);
+        return cart;
     }
 }

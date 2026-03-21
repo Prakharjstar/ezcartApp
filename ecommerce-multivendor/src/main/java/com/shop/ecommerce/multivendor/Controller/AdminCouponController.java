@@ -23,14 +23,14 @@ public class AdminCouponController {
 
 
     @PostMapping("/apply")
-    public ResponseEntity<Cart> applyCoupon(@RequestParam String apply , @RequestParam String code, @RequestParam double orderValue , @RequestHeader("Authorization")String jwt) throws Exception {
+    public ResponseEntity<Cart> applyCoupon(@RequestParam boolean apply , @RequestParam String code, @RequestParam double orderValue , @RequestHeader("Authorization")String jwt) throws Exception {
 
         User user = userService.findUserByJwtToken(jwt);
         Cart cart;
-        if(apply.equals("true")){
-            cart= couponService.applyCoupon(code , orderValue,user);
-        }else{
-            cart=couponService.removeCoupon(code,user);
+        if (apply) {
+            cart = couponService.applyCoupon(code, orderValue, user);
+        } else {
+            cart = couponService.removeCoupon(code, user);
         }
         return  ResponseEntity.ok(cart);
     }
@@ -51,6 +51,7 @@ public class AdminCouponController {
     @GetMapping("/admin/all")
     public ResponseEntity<List<Coupon>> getAllCoupons(){
         List<Coupon> coupons = couponService.findAllCoupons();
+        System.out.println("COUPONS FROM DB 👉 " + coupons);
         return ResponseEntity.ok(coupons);
     }
 

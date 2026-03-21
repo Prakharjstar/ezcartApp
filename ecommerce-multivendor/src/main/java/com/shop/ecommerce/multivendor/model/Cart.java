@@ -1,39 +1,34 @@
 package com.shop.ecommerce.multivendor.model;
+
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.*;
-import java.util.HashSet;
+import java.util.List;
 
 @Entity
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-
+@AllArgsConstructor
 public class Cart {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @OneToOne
     private User user;
 
-    @OneToMany(mappedBy = "cart" , cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<CartItem> cartItems = new HashSet<>();
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL)
+    private List<CartItem> cartItems;
 
-    private double totalSellingPrice;
-
-    private int totalItem;
-    private int totalMrpPrice;
-    private int discount;
-
-
-    private double discountAmount;      // calculated discount
-
-    private double finalPrice;          // subtotal - discount
-
+    private double totalMrpPrice;          // Total of all MRP
+    private double totalSellingPrice;      // Total of all selling prices
+    private double productDiscountAmount;  // Product discount only
+    private double couponDiscountAmount;   // Coupon discount only
+    private double finalPrice;             // totalSellingPrice - couponDiscountAmount
     private String couponCode;
+    private int totalItem;
+
 
 
 }
