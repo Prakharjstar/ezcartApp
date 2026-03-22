@@ -44,6 +44,7 @@ public class Order {
     private OrderStatus orderStatus;
 
     private int totalItem;
+    private Integer totalAmount;
 
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 

@@ -2,6 +2,7 @@ package com.shop.ecommerce.multivendor.Service.impl;
 
 import com.shop.ecommerce.multivendor.Service.CouponService;
 import com.shop.ecommerce.multivendor.model.Cart;
+import com.shop.ecommerce.multivendor.model.CartItem;
 import com.shop.ecommerce.multivendor.model.Coupon;
 import com.shop.ecommerce.multivendor.model.User;
 import com.shop.ecommerce.multivendor.repository.CartRepository;
@@ -28,58 +29,62 @@ public class CouponServiceImpl implements CouponService {
         if (coupon == null) {
             throw new Exception("Coupon not valid");
         }
-
-        if (user.getUsedCoupons().contains(coupon)) {
-            throw new Exception("Coupon already used");
-        }
-
-        if (orderValue < coupon.getMinimumOrderValue()) {
-            throw new Exception("Valid for minimum order value " + coupon.getMinimumOrderValue());
-        }
-
-        LocalDate today = LocalDate.now();
-        if (!coupon.isActive() || today.isBefore(coupon.getValidityStartDate()) || today.isAfter(coupon.getValidityEndDate())) {
-            throw new Exception("Coupon not valid at this time");
-        }
-
         Cart cart = cartRepository.findByUserId(user.getId());
+        if (cart == null) throw new Exception("Cart not found");
 
-        double discountAmount = 0;
+// 🔹 Force load cartItems
+        cart.getCartItems().size(); // triggers lazy load if FetchType.LAZY
+
+// 🔹 Recalculate totalSellingPrice
+        double totalSellingPrice = 0;
+        for (CartItem item : cart.getCartItems()) {
+            totalSellingPrice += item.getSellingPrice() * item.getQuantity();
+        }
+        cart.setTotalSellingPrice(totalSellingPrice);
+
         double originalPrice = cart.getTotalSellingPrice();
 
-        // ✅ Calculate discount based on type
-        if (coupon.getDiscountType() == Coupon.DiscountType.PERCENTAGE) {
-            discountAmount = (originalPrice * coupon.getDiscountValue()) / 100.0;
-            if (coupon.getMaxDiscount() != null && discountAmount > coupon.getMaxDiscount()) {
-                discountAmount = coupon.getMaxDiscount();
-            }
-        } else if (coupon.getDiscountType() == Coupon.DiscountType.FIXED) {
-            discountAmount = coupon.getDiscountValue();
+// 🔹 DEBUG
+        System.out.println("originalPrice = " + originalPrice);
+        System.out.println("couponValue = " + coupon.getDiscountValue());
+
+// Calculate discount
+        double discountAmount = 0;
+        double value = coupon.getDiscountValue();
+        if (value > 0) {
+            if (value <= 100) discountAmount = (originalPrice * value) / 100.0;
+            else discountAmount = value;
         }
 
-        double finalPrice = originalPrice - discountAmount;
+// Optional max discount
+        if (coupon.getMaxDiscount() != null && discountAmount > coupon.getMaxDiscount()) {
+            discountAmount = coupon.getMaxDiscount();
+        }
 
-        // Update cart
+// Update cart
         cart.setCouponDiscountAmount(discountAmount);
-        cart.setFinalPrice(finalPrice);
+        cart.setFinalPrice(originalPrice - discountAmount);
         cart.setCouponCode(code);
 
-        // Mark coupon as used by user
-        user.getUsedCoupons().add(coupon);
-        userRepository.save(user);
-
         cartRepository.save(cart);
-
         return cart;
     }
 
     @Override
     public Cart removeCoupon(String code, User user) throws Exception {
         Cart cart = cartRepository.findByUserId(user.getId());
+        if (cart == null) throw new Exception("Cart not found");
+
+        // Recalculate totals
+        double totalSellingPrice = 0;
+        for (CartItem item : cart.getCartItems()) {
+            totalSellingPrice += item.getSellingPrice() * item.getQuantity();
+        }
+        cart.setTotalSellingPrice(totalSellingPrice);
 
         cart.setCouponCode(null);
         cart.setCouponDiscountAmount(0);
-        cart.setFinalPrice(cart.getTotalSellingPrice());
+        cart.setFinalPrice(totalSellingPrice);
 
         cartRepository.save(cart);
         return cart;
@@ -87,7 +92,8 @@ public class CouponServiceImpl implements CouponService {
 
     @Override
     public Coupon findCouponById(Long id) throws Exception {
-        return couponRepository.findById(id).orElseThrow(() -> new Exception("Coupon not found"));
+        return couponRepository.findById(id)
+                .orElseThrow(() -> new Exception("Coupon not found"));
     }
 
     @Override

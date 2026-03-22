@@ -12,6 +12,8 @@ public interface CartService {
 
     Cart findUserCart(User user);
 
+    Cart getCartByUserId(Long id);
+
     // Optional: remove an item from cart
 
 }

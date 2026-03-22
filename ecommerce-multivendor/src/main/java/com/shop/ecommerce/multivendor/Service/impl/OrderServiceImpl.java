@@ -27,22 +27,29 @@ public class OrderServiceImpl implements OrderService {
 
     @Transactional
     public Set<Order> createOrder(User user, Address shippingAddress, Cart cart) {
+
         if (!user.getAddresses().contains(shippingAddress)) {
             user.getAddresses().add(shippingAddress);
         }
+
         Address address = addressRepository.save(shippingAddress);
 
+        // Group items by seller
         Map<Long, List<CartItem>> itemsBySeller = cart.getCartItems()
                 .stream()
                 .collect(Collectors.groupingBy(item -> item.getProduct().getSeller().getId()));
 
         Set<Order> orders = new HashSet<>();
 
+        double cartTotalSellingPrice = cart.getTotalSellingPrice();
+        double cartDiscount = cart.getCouponDiscountAmount();
+
         for (Map.Entry<Long, List<CartItem>> entry : itemsBySeller.entrySet()) {
+
             Long sellerId = entry.getKey();
             List<CartItem> items = entry.getValue();
 
-            int totalOrderPrice = items.stream()
+            int sellerTotal = items.stream()
                     .mapToInt(item -> item.getSellingPrice() * item.getQuantity())
                     .sum();
 
@@ -50,22 +57,36 @@ public class OrderServiceImpl implements OrderService {
                     .mapToInt(CartItem::getQuantity)
                     .sum();
 
+            // 🔥 Distribute coupon discount proportionally
+            int sellerDiscount = 0;
+            if (cartTotalSellingPrice > 0) {
+                double ratio = (double) sellerTotal / cartTotalSellingPrice;
+                sellerDiscount = (int) (cartDiscount * ratio);
+            }
+
+            int finalAmount = sellerTotal - sellerDiscount;
+
             Order order = new Order();
             order.setUser(user);
             order.setSellerId(sellerId);
             order.setShippingAddress(address);
             order.setOrderStatus(OrderStatus.PENDING);
-            order.setTotalMrpPrice(totalOrderPrice);
-            order.setTotalSellingPrice(totalOrderPrice);
+
+            // ✅ Correct pricing
+            order.setTotalMrpPrice(sellerTotal);
+            order.setTotalSellingPrice(sellerTotal);
+            order.setDiscount(sellerDiscount);
+            order.setTotalAmount(finalAmount);
             order.setTotalItem(totalItem);
 
-            // initialize payment details
+            // ✅ Payment
             PaymentDetails paymentDetails = new PaymentDetails();
             paymentDetails.setStatus(PaymentStatus.PENDING);
             order.setPaymentDetails(paymentDetails);
 
-            // add order items
+            // ✅ Order Items
             for (CartItem item : items) {
+
                 Product product = productRepository.findById(item.getProduct().getId())
                         .orElseThrow(() -> new RuntimeException("Product not found"));
 
@@ -76,10 +97,9 @@ public class OrderServiceImpl implements OrderService {
                 orderItem.setMrpPrice(item.getMrpPrice());
                 orderItem.setSellingPrice(item.getSellingPrice());
                 orderItem.setSize(item.getSize());
-                orderItem.setUserId(user.getId()); // <--- important
+                orderItem.setUserId(user.getId());
+
                 order.getOrderItems().add(orderItem);
-
-
             }
 
             orders.add(orderRepository.save(order));

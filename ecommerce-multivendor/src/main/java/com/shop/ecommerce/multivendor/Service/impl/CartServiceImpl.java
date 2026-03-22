@@ -7,6 +7,7 @@ import com.shop.ecommerce.multivendor.model.Product;
 import com.shop.ecommerce.multivendor.model.User;
 import com.shop.ecommerce.multivendor.repository.CartRepository;
 import com.shop.ecommerce.multivendor.repository.CartitemRepository;
+import com.shop.ecommerce.multivendor.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
     private final CartitemRepository cartitemRepository;
+    private final UserRepository userRepository;
 
     @Override
     public CartItem addcartItem(User user, Product product, String size, int quantity) {
@@ -70,6 +72,46 @@ public class CartServiceImpl implements CartService {
         }
 
         return recalcCart(cart);
+    }
+
+    @Override
+    public Cart getCartByUserId(Long id) {
+        // Fetch the cart by user id from the repository
+        Cart cart = cartRepository.findByUserId(id);
+
+        if (cart == null) {
+            // Optional: create a new cart if it doesn't exist
+            cart = new Cart();
+            cart.setUser(userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found")));
+            cart.setCartItems(new ArrayList<>());
+            cart.setTotalItem(0);
+            cart.setTotalMrpPrice(0);
+            cart.setTotalSellingPrice(0);
+            cart.setFinalPrice(0);
+            cartRepository.save(cart);
+        }
+
+        // Ensure totalSellingPrice is correct
+        double totalSellingPrice = 0;
+        double totalMrpPrice = 0;
+        int totalItem = 0;
+
+        for (var item : cart.getCartItems()) {
+            totalSellingPrice += item.getSellingPrice() * item.getQuantity();
+            totalMrpPrice += item.getMrpPrice() * item.getQuantity();
+            totalItem += item.getQuantity();
+        }
+
+        cart.setTotalSellingPrice(totalSellingPrice);
+        cart.setTotalMrpPrice(totalMrpPrice);
+        cart.setTotalItem(totalItem);
+
+        // Ensure finalPrice is at least equal to totalSellingPrice if no coupon
+        if (cart.getFinalPrice() <= 0) {
+            cart.setFinalPrice(totalSellingPrice);
+        }
+
+        return cart;
     }
 
     // Recalculate totals
