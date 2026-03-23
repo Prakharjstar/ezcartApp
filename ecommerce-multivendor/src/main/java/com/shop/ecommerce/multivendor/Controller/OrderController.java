@@ -94,11 +94,11 @@ public class OrderController {
         Order order = orderService.cancelOrder(orderId,user);
 
         Seller seller = sellerService.getSellerById(order.getSellerId());
-       SellerReport report = sellerReportService.getSellerReport(seller);
+        SellerReport report = sellerReportService.getSellerReport(seller);
 
-       report.setCanceledOrders(report.getCanceledOrders()+1);
+        report.setCanceledOrders(report.getCanceledOrders()+1);
         report.setTotalRefunds(report.getTotalRefunds()+order.getTotalSellingPrice());
-       sellerReportService.updateSellerReport(report);
+        sellerReportService.updateSellerReport(report);
 
         return ResponseEntity.ok(order);
     }

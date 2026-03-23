@@ -40,4 +40,5 @@ public interface SellerService {
     boolean validateOtp(String email, String otp) throws Exception;
 
 
+
 }

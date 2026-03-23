@@ -51,6 +51,8 @@ public class Order {
     private LocalDateTime orderDate = LocalDateTime.now();
 
     private LocalDateTime deliverDate = orderDate.plusDays(7);
+    private LocalDateTime shippedDate;   // when seller ships the order
+    private boolean cancelled = false;   // if order is cancelled
 
 
 }

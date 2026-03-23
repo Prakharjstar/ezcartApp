@@ -15,4 +15,6 @@ public interface OrderService {
     Order cancelOrder(Long orderId , User user) throws Exception;
     OrderItem getOrderItemById(Long id) throws Exception;
     int countTodayOrders(User user);
+
+    void deleteOrder(Long orderId);
 }

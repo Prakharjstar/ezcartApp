@@ -13,4 +13,5 @@ public interface SellerRepository extends JpaRepository<Seller, Long> {
     Seller findByEmailIgnoreCase(String email);
     List<Seller> findByAccountStatus(AccountStatus accountStatus);
 
-}
+
+  }

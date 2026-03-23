@@ -22,7 +22,6 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final AddressRepository addressRepository;
     private final ProductRepository productRepository;
-
     private final OrderItemRepository orderItemRepository;
 
     @Transactional
@@ -34,7 +33,6 @@ public class OrderServiceImpl implements OrderService {
 
         Address address = addressRepository.save(shippingAddress);
 
-        // Group items by seller
         Map<Long, List<CartItem>> itemsBySeller = cart.getCartItems()
                 .stream()
                 .collect(Collectors.groupingBy(item -> item.getProduct().getSeller().getId()));
@@ -57,7 +55,6 @@ public class OrderServiceImpl implements OrderService {
                     .mapToInt(CartItem::getQuantity)
                     .sum();
 
-            // 🔥 Distribute coupon discount proportionally
             int sellerDiscount = 0;
             if (cartTotalSellingPrice > 0) {
                 double ratio = (double) sellerTotal / cartTotalSellingPrice;
@@ -70,23 +67,19 @@ public class OrderServiceImpl implements OrderService {
             order.setUser(user);
             order.setSellerId(sellerId);
             order.setShippingAddress(address);
-            order.setOrderStatus(OrderStatus.PENDING);
+            order.setOrderStatus(OrderStatus.PENDING); // initial status
 
-            // ✅ Correct pricing
             order.setTotalMrpPrice(sellerTotal);
             order.setTotalSellingPrice(sellerTotal);
             order.setDiscount(sellerDiscount);
             order.setTotalAmount(finalAmount);
             order.setTotalItem(totalItem);
 
-            // ✅ Payment
             PaymentDetails paymentDetails = new PaymentDetails();
             paymentDetails.setStatus(PaymentStatus.PENDING);
             order.setPaymentDetails(paymentDetails);
 
-            // ✅ Order Items
             for (CartItem item : items) {
-
                 Product product = productRepository.findById(item.getProduct().getId())
                         .orElseThrow(() -> new RuntimeException("Product not found"));
 
@@ -107,58 +100,77 @@ public class OrderServiceImpl implements OrderService {
 
         return orders;
     }
+
     @Override
     public Order findOrderById(long id) throws Exception {
-        return orderRepository.findById(id).orElseThrow(() -> new Exception("Order not found..."));
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new Exception("Order not found"));
     }
-
 
     @Override
     public List<Order> usersOrderHistory(Long userId) {
-        return orderRepository.findByUserId(userId);
+        List<Order> orders = orderRepository.findByUserId(userId);
+        orders.forEach(order -> order.setOrderStatus(calculateOrderStatus(order)));
+        return orders;
     }
-
-
 
     @Override
     public List<Order> sellersOrder(Long sellerId) {
-        return orderRepository.findBySellerId(sellerId);
+        List<Order> orders = orderRepository.findBySellerId(sellerId);
+        orders.forEach(order -> order.setOrderStatus(calculateOrderStatus(order)));
+        return orders;
     }
 
     @Override
+    @Transactional
     public Order updateOrderStatus(Long orderId, OrderStatus orderStatus) throws Exception {
         Order order = findOrderById(orderId);
-        order.setOrderStatus(orderStatus);
+        if (orderStatus == OrderStatus.SHIPPED) {
+            order.setShippedDate(LocalDate.now().atStartOfDay());
+        }
+        order.setOrderStatus(calculateOrderStatus(order));
         return orderRepository.save(order);
     }
 
     @Override
+    @Transactional
     public Order cancelOrder(Long orderId, User user) throws Exception {
         Order order = findOrderById(orderId);
         if (!user.getId().equals(order.getUser().getId())) {
             throw new Exception("You don't have access to this Order");
         }
-        order.setOrderStatus(OrderStatus.CANCELLED);
+        order.setCancelled(true);
+        order.setOrderStatus(calculateOrderStatus(order));
         return orderRepository.save(order);
-
     }
 
     @Override
     public OrderItem getOrderItemById(Long id) throws Exception {
-        return orderItemRepository.findById(id).orElseThrow(()-> new Exception("order item not exist...."));
-
+        return orderItemRepository.findById(id)
+                .orElseThrow(() -> new Exception("Order item does not exist"));
     }
 
     @Override
     public int countTodayOrders(User user) {
-
         LocalDate today = LocalDate.now();
-
         List<Order> orders = orderRepository.findByUserId(user.getId());
-
         return (int) orders.stream()
                 .filter(order -> order.getOrderDate().toLocalDate().equals(today))
                 .count();
     }
 
+    @Override
+    public void deleteOrder(Long orderId) {
+
+    }
+
+
+    private OrderStatus calculateOrderStatus(Order order) {
+        if (order.isCancelled()) return OrderStatus.CANCELLED;
+        if (order.getShippedDate() != null) {
+            if (LocalDate.now().isAfter(order.getDeliverDate().toLocalDate())) return OrderStatus.DELIVERED;
+            return OrderStatus.SHIPPED;
+        }
+        return OrderStatus.PENDING;
+    }
 }
