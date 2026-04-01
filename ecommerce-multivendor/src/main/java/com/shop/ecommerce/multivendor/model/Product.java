@@ -14,7 +14,6 @@ import java.util.ArrayList;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

@@ -125,10 +125,17 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public Order updateOrderStatus(Long orderId, OrderStatus orderStatus) throws Exception {
         Order order = findOrderById(orderId);
+
         if (orderStatus == OrderStatus.SHIPPED) {
             order.setShippedDate(LocalDate.now().atStartOfDay());
         }
-        order.setOrderStatus(calculateOrderStatus(order));
+
+        if (orderStatus == OrderStatus.DELIVERED) {
+            order.setDeliverDate(LocalDate.now().atStartOfDay());
+        }
+
+        order.setOrderStatus(orderStatus);
+
         return orderRepository.save(order);
     }
 

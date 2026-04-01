@@ -5,6 +5,7 @@ import com.razorpay.PaymentLink;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.shop.ecommerce.multivendor.Service.PaymentService;
+import com.shop.ecommerce.multivendor.domain.OrderStatus;
 import com.shop.ecommerce.multivendor.model.*;
 import com.shop.ecommerce.multivendor.repository.OrderRepository;
 import com.shop.ecommerce.multivendor.repository.PaymentOrderRepository;
@@ -72,8 +73,12 @@ public class PaymentServiceImpl implements PaymentService {
             String status=payment.get("status");
             if(status.equals("captured")){
                 Set<Order> orders=paymentOrder.getOrders();
-                for(Order order :orders){
-                    order.setPaymentStatus(PaymentStatus.COMPLETED);
+                for (Order order : orders) {
+                    order.getPaymentDetails().setStatus(PaymentStatus.COMPLETED);
+
+                    order.setOrderStatus(OrderStatus.SHIPPED);
+                    order.setShippedDate(java.time.LocalDateTime.now());
+
                     orderRepository.save(order);
                 }
                 paymentOrder.setStatus(PaymentOrderStatus.SUCCESS);
@@ -106,7 +111,10 @@ public class PaymentServiceImpl implements PaymentService {
             notify.put("email",true);
             paymentLinkRequest.put("notify",notify);
 
-            paymentLinkRequest.put("callback_url","http://localhost:3000/payment-success" + orderId);
+            paymentLinkRequest.put(
+                    "callback_url",
+                    "http://localhost:3000/payment-success/" + orderId
+            );
 
             paymentLinkRequest.put("callback_method","get");
 
